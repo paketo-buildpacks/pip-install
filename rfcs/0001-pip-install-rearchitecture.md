@@ -3,13 +3,13 @@
 The existing pip buildpack should be rewritten and restructured to only provide the pip dependency. The pip install logic should be factored out into it's own buildpack.
 
 ## Motivation
-In keeping with the overarching Python Buildpack Rearchitecture RFC, the Pip Install Buildpack should perform one task, which is installing from requirements files. This is part of the effort in Paketo Buildpacks to reduce the responsibilities of each buildpack to make them easier to understand and maintain.
+In keeping with the overarching [Python Buildpack Rearchitecture RFC](https://github.com/paketo-community/pip/blob/main/rfcs/0001-pip-rearchitecture.md), the Pip Install Buildpack should perform one task, which is installing from requirements files. This is part of the effort in Paketo Buildpacks to reduce the responsibilities of each buildpack to make them easier to understand and maintain.
 
 ## Implementation
 ### API
 - pip-install
-  - requires: cpython and pip during build 
-  - provides: site-packages
+  - `requires`: `cpython` and `pip` during build 
+  - `provides`: `site-packages`
 
 ### Detect
 The pip-install buildpack should only detect if there is a `requirements.txt` file at the root of the app.
@@ -35,7 +35,7 @@ Upgrade options are ignored if using `--ignore-installed` See [upgrade options](
 
 This should be run with the environment variable `PYTHONUSERBASE` set to the packages layer directory.
 
-If the app has a vendor directory at the root, the app will be considered to be vendored and the resulting build command will be:
+If the app has a vendor directory at the root, the app will be considered vendored and the resulting build command will be:
 ```bash
 python -m pip install
   -r <requirements file>
