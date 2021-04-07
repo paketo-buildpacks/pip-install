@@ -1,29 +1,40 @@
-# Pip Install Rearchitecture
+# Pip Install Architecture
+
 ## Proposal
-The existing pip buildpack should be rewritten and restructured to only provide the pip dependency. The pip install logic should be factored out into it's own buildpack.
+The Pip Install buildpack will use the package installer
+[pip](https://pypi.org/project/pip) to install dependencies from a
+`requirements.txt` file into a layer that will be managed by the buildpack.
 
 ## Motivation
-In keeping with the overarching [Python Buildpack Rearchitecture RFC](https://github.com/paketo-community/pip/blob/main/rfcs/0001-pip-rearchitecture.md), the Pip Install Buildpack should perform one task, which is installing from requirements files. This is part of the effort in Paketo Buildpacks to reduce the responsibilities of each buildpack to make them easier to understand and maintain.
+In keeping with the overarching [Python Buildpack Rearchitecture
+RFC](https://github.com/paketo-community/pip/blob/main/rfcs/0001-pip-rearchitecture.md),
+the Pip Install Buildpack should perform one task, which is installing from
+requirements files. This is part of the effort in Paketo Buildpacks to reduce
+the responsibilities of each buildpack to make them easier to understand and
+maintain.
 
 ## Implementation
 ### API
 - pip-install
-  - `requires`: `cpython` and `pip` during build 
+  - `requires`: `cpython` and `pip` during build
   - `provides`: `site-packages`
 
 ### Detect
-The pip-install buildpack should only detect if there is a `requirements.txt` file at the root of the app.
+The pip-install buildpack should only detect if there is a `requirements.txt`
+file at the root of the app.
 
 ### Build
-#### Configuration
-There will be two layers, packages layer and cache layer. 
+There will be two layers, packages layer and cache layer.
 The packages layer will contain the result of the pip install command.
 The cache layer will hold the pip [cache](https://pip.pypa.io/en/stable/reference/pip_install/#caching).
 
-During the build process, the resulting build command will be:
+During the build process, it will utilize the `pip` tool provided by the `pip`
+requirement (e.g. provided by the `paketo-community/pip` buildpack).
+
+The resulting build command run by the Pip Install buildpack will be:
 ```bash
 python -m pip install
-  -r <requirements file>                      # install from given requirements file 
+  --requirement <requirements file>           # install from given requirements file
   --ignore-installed                          # ignores previously installed packages
   --exists-action=w                           # if path already exists, wipe before installation
   --cache-dir=<path to cache layer directory> # reuse pip cache
@@ -31,18 +42,19 @@ python -m pip install
   --user                                      # install to python user install directory set by PYTHONUSERBASE
   --disable-pip-version-check                 # ignore version check warning
 ```
-Upgrade options are ignored if using `--ignore-installed` See [upgrade options](https://pip.pypa.io/en/stable/development/architecture/upgrade-options/).
+Upgrade options are ignored if using `--ignore-installed` See [upgrade
+options](https://pip.pypa.io/en/stable/development/architecture/upgrade-options/).
 
 This should be run with the environment variable `PYTHONUSERBASE` set to the packages layer directory.
 
 If the app has a vendor directory at the root, the app will be considered vendored and the resulting build command will be:
 ```bash
 python -m pip install
-  -r <requirements file>
+  --requirement <requirements file>
   --ignore-installed
   --exists-action=w
-  --no-index                                     # ignore package index, uses --find-links URLs 
-  --find-links=<file://<vendor layer directory>> # uses apps vendor directory
+  --no-index                                   # ignore package index, uses --find-links URLs
+  --find-links=<file://<app vendor directory>> # uses apps vendor directory
   --compile
   --user
   --disable-pip-version-check
