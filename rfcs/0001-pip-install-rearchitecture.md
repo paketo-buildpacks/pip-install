@@ -33,7 +33,7 @@ requirement (e.g. provided by the `paketo-community/pip` buildpack).
 
 The resulting build command run by the Pip Install buildpack will be:
 ```bash
-python -m pip install
+pip install
   --requirement <requirements file>           # install from given requirements file
   --ignore-installed                          # ignores previously installed packages
   --exists-action=w                           # if path already exists, wipe before installation
@@ -49,7 +49,7 @@ This should be run with the environment variable `PYTHONUSERBASE` set to the pac
 
 If the app has a vendor directory at the root, the app will be considered vendored and the resulting build command will be:
 ```bash
-python -m pip install
+pip install
   --requirement <requirements file>
   --ignore-installed
   --exists-action=w
