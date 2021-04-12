@@ -24,7 +24,7 @@ The pip-install buildpack should only detect if there is a `requirements.txt`
 file at the root of the app.
 
 ### Build
-There will be two layers, packages layer and cache layer.
+There will be two layers, `packages` layer and `cache` layer.
 The packages layer will contain the result of the pip install command.
 The cache layer will hold the pip [cache](https://pip.pypa.io/en/stable/reference/pip_install/#caching).
 
@@ -59,3 +59,9 @@ pip install
   --user
   --disable-pip-version-check
 ```
+
+#### Environment variables
+
+The buildpack should attach the environment variable `$PYTHONUSERBASE` to the
+`packages` layer, set its value to the layer's directory path, and make it
+available during both the build and launch phases.
