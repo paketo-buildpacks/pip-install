@@ -44,9 +44,6 @@ func Build(entryResolver EntryResolver, installProcess InstallProcess, clock chr
 			return packit.BuildResult{}, err
 		}
 
-		// reusing layer from previous build will go here
-		// when implemented.
-
 		packagesLayer, err = packagesLayer.Reset()
 		if err != nil {
 			return packit.BuildResult{}, err
