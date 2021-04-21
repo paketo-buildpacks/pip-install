@@ -1,7 +1,5 @@
 package pipinstall_test
 
-//COPIED FROM PIP
-
 import (
 	"io/ioutil"
 	"os"
