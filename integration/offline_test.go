@@ -29,7 +29,7 @@ func testOffline(t *testing.T, context spec.G, it spec.S) {
 		docker = occam.NewDocker()
 	})
 
-	context.Pend("when the buildpack is run with pack build in offline mode", func() {
+	context("when the buildpack is run with pack build in offline mode", func() {
 		var (
 			image     occam.Image
 			container occam.Container
