@@ -72,7 +72,7 @@ func testDefault(t *testing.T, context spec.G, it spec.S) {
 			Expect(logs).To(ContainLines(
 				MatchRegexp(fmt.Sprintf(`%s \d+\.\d+\.\d+`, buildpackInfo.Buildpack.Name)),
 				"  Executing build process",
-				MatchRegexp(fmt.Sprintf("    Running 'pip install --requirement requirements.txt --ignore-installed --exists-action=w --cache-dir=/layers/%s/cache --compile --user --disable-pip-version-check'", strings.ReplaceAll(buildpackInfo.Buildpack.ID, "/", "_"))),
+				MatchRegexp(fmt.Sprintf("    Running 'pip install --requirement requirements.txt --exists-action=w --cache-dir=/layers/%s/cache --compile --user --disable-pip-version-check'", strings.ReplaceAll(buildpackInfo.Buildpack.ID, "/", "_"))),
 				MatchRegexp(`      Completed in \d+\.\d+`),
 				"",
 				"  Configuring environment",

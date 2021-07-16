@@ -46,7 +46,6 @@ func (p PipInstallProcess) Execute(workingDir, targetPath, cachePath string) err
 				"install",
 				"--requirement",
 				"requirements.txt",
-				"--ignore-installed",
 				"--exists-action=w",
 				fmt.Sprintf("--cache-dir=%s", cachePath),
 				"--compile",
