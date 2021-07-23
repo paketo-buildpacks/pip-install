@@ -53,7 +53,6 @@ func testInstallProcess(t *testing.T, context spec.G, it spec.S) {
 				"install",
 				"--requirement",
 				"requirements.txt",
-				"--ignore-installed",
 				"--exists-action=w",
 				fmt.Sprintf("--cache-dir=%s", cacheLayerPath),
 				"--compile",

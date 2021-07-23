@@ -44,11 +44,6 @@ func Build(entryResolver EntryResolver, installProcess InstallProcess, clock chr
 			return packit.BuildResult{}, err
 		}
 
-		packagesLayer, err = packagesLayer.Reset()
-		if err != nil {
-			return packit.BuildResult{}, err
-		}
-
 		logger.Process("Executing build process")
 		duration, err := clock.Measure(func() error {
 			return installProcess.Execute(context.WorkingDir, packagesLayer.Path, cacheLayer.Path)
@@ -65,7 +60,7 @@ func Build(entryResolver EntryResolver, installProcess InstallProcess, clock chr
 		}
 
 		packagesLayer.Launch, packagesLayer.Build = entryResolver.MergeLayerTypes(SitePackages, context.Plan.Entries)
-		packagesLayer.Cache = packagesLayer.Build
+		packagesLayer.Cache = packagesLayer.Launch || packagesLayer.Build
 		cacheLayer.Cache = true
 
 		packagesLayer.SharedEnv.Default("PYTHONUSERBASE", packagesLayer.Path)

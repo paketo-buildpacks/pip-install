@@ -175,6 +175,56 @@ func testBuild(t *testing.T, context spec.G, it spec.S) {
 		})
 	})
 
+	context("site-packages required at launch", func() {
+		it.Before(func() {
+			entryResolver.MergeLayerTypesCall.Returns.Launch = true
+			entryResolver.MergeLayerTypesCall.Returns.Build = false
+		})
+
+		it("layer's build, cache flags must be set", func() {
+			result, err := build(packit.BuildContext{
+				BuildpackInfo: packit.BuildpackInfo{
+					Name:    "Some Buildpack",
+					Version: "some-version",
+				},
+				WorkingDir: workingDir,
+				CNBPath:    cnbDir,
+				Plan: packit.BuildpackPlan{
+					Entries: []packit.BuildpackPlanEntry{
+						{
+							Name: pipinstall.SitePackages,
+						},
+					},
+				},
+				Platform: packit.Platform{Path: "some-platform-path"},
+				Layers:   packit.Layers{Path: layersDir},
+				Stack:    "some-stack",
+			})
+			Expect(err).NotTo(HaveOccurred())
+
+			Expect(result).To(Equal(packit.BuildResult{
+				Layers: []packit.Layer{
+					{
+						Name: pipinstall.PackagesLayerName,
+						Path: filepath.Join(layersDir, pipinstall.PackagesLayerName),
+						SharedEnv: packit.Environment{
+							"PYTHONUSERBASE.default": filepath.Join(layersDir, pipinstall.PackagesLayerName),
+						},
+						BuildEnv:         packit.Environment{},
+						LaunchEnv:        packit.Environment{},
+						ProcessLaunchEnv: map[string]packit.Environment{},
+						Build:            false,
+						Launch:           true,
+						Cache:            true,
+						Metadata: map[string]interface{}{
+							"built_at": timeStamp.Format(time.RFC3339Nano),
+						},
+					},
+				},
+			}))
+		})
+	})
+
 	context("install process utilizes cache", func() {
 		it.Before(func() {
 			installProcess.ExecuteCall.Stub = func(_, _, cachePath string) error {
