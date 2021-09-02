@@ -3,7 +3,7 @@ The Paketo Pip Install Buildpack is a Cloud Native Buildpack that installs
 packages using pip and makes it available to the application.
 
 The buildpack is published for consumption at
-`gcr.io/paketo-community/pip-install` and `paketocommunity/pip-install`.
+`gcr.io/paketo-buildpacks/pip-install` and `paketobuildpacks/pip-install`.
 
 ## Behavior
 This buildpack participates if `requirements.txt` exists at the root the app.

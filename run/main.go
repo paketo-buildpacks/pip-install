@@ -8,7 +8,7 @@ import (
 	"github.com/paketo-buildpacks/packit/draft"
 	"github.com/paketo-buildpacks/packit/pexec"
 	"github.com/paketo-buildpacks/packit/scribe"
-	pipinstall "github.com/paketo-community/pip-install"
+	pipinstall "github.com/paketo-buildpacks/pip-install"
 )
 
 func main() {

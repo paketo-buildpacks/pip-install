@@ -1,4 +1,4 @@
-module github.com/paketo-community/pip-install
+module github.com/paketo-buildpacks/pip-install
 
 go 1.16
 

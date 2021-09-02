@@ -5,11 +5,11 @@ package pipinstall
 const SitePackages = "site-packages"
 
 // CPython is the name of the python runtime dependency provided by the CPython
-// buildpack: https://github.com/paketo-community/cpython.
+// buildpack: https://github.com/paketo-buildpacks/cpython.
 const CPython = "cpython"
 
 // Pip is the name of the dependency provided by the Pip buildpack:
-// https://github.com/paketo-community/pip.
+// https://github.com/paketo-buildpacks/pip.
 const Pip = "pip"
 
 // The layer name for packages layer. This layer is where dependencies are

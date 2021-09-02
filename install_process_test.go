@@ -9,8 +9,8 @@ import (
 	"testing"
 
 	"github.com/paketo-buildpacks/packit/scribe"
-	pipinstall "github.com/paketo-community/pip-install"
-	"github.com/paketo-community/pip-install/fakes"
+	pipinstall "github.com/paketo-buildpacks/pip-install"
+	"github.com/paketo-buildpacks/pip-install/fakes"
 	"github.com/sclevine/spec"
 
 	. "github.com/onsi/gomega"
