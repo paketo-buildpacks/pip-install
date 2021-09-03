@@ -12,15 +12,14 @@ import (
 )
 
 func main() {
-	planner := draft.NewPlanner()
 	logger := scribe.NewEmitter(os.Stdout)
-	installProcess := pipinstall.NewPipInstallProcess(pexec.NewExecutable("pip"), logger)
 
 	packit.Run(
 		pipinstall.Detect(),
 		pipinstall.Build(
-			planner,
-			installProcess,
+			draft.NewPlanner(),
+			pipinstall.NewPipInstallProcess(pexec.NewExecutable("pip"), logger),
+			pipinstall.NewSiteProcess(pexec.NewExecutable("python")),
 			chronos.DefaultClock,
 			logger,
 		),

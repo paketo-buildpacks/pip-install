@@ -28,12 +28,13 @@ func testBuild(t *testing.T, context spec.G, it spec.S) {
 		workingDir string
 		cnbDir     string
 
-		clock          chronos.Clock
-		timeStamp      time.Time
-		installProcess *fakes.InstallProcess
-		buffer         *bytes.Buffer
-		logEmitter     scribe.Emitter
-		entryResolver  *fakes.EntryResolver
+		entryResolver       *fakes.EntryResolver
+		installProcess      *fakes.InstallProcess
+		sitePackagesProcess *fakes.SitePackagesProcess
+		clock               chronos.Clock
+
+		timeStamp time.Time
+		buffer    *bytes.Buffer
 
 		build packit.BuildFunc
 	)
@@ -50,17 +51,25 @@ func testBuild(t *testing.T, context spec.G, it spec.S) {
 		Expect(err).NotTo(HaveOccurred())
 
 		installProcess = &fakes.InstallProcess{}
+		sitePackagesProcess = &fakes.SitePackagesProcess{}
+		sitePackagesProcess.ExecuteCall.Returns.SitePackagesPath = "some-site-packages-path"
+
 		entryResolver = &fakes.EntryResolver{}
 
 		buffer = bytes.NewBuffer(nil)
-		logEmitter = scribe.NewEmitter(buffer)
 
 		timeStamp = time.Now()
 		clock = chronos.NewClock(func() time.Time {
 			return timeStamp
 		})
 
-		build = pipinstall.Build(entryResolver, installProcess, clock, logEmitter)
+		build = pipinstall.Build(
+			entryResolver,
+			installProcess,
+			sitePackagesProcess,
+			clock,
+			scribe.NewEmitter(buffer),
+		)
 	})
 
 	it.After(func() {
@@ -78,9 +87,7 @@ func testBuild(t *testing.T, context spec.G, it spec.S) {
 			CNBPath:    cnbDir,
 			Plan: packit.BuildpackPlan{
 				Entries: []packit.BuildpackPlanEntry{
-					{
-						Name: pipinstall.SitePackages,
-					},
+					{Name: "site-packages"},
 				},
 			},
 			Platform: packit.Platform{Path: "some-platform-path"},
@@ -92,10 +99,11 @@ func testBuild(t *testing.T, context spec.G, it spec.S) {
 		Expect(result).To(Equal(packit.BuildResult{
 			Layers: []packit.Layer{
 				{
-					Name: pipinstall.PackagesLayerName,
-					Path: filepath.Join(layersDir, pipinstall.PackagesLayerName),
+					Name: "packages",
+					Path: filepath.Join(layersDir, "packages"),
 					SharedEnv: packit.Environment{
-						"PYTHONUSERBASE.default": filepath.Join(layersDir, pipinstall.PackagesLayerName),
+						"PYTHONPATH.prepend": "some-site-packages-path",
+						"PYTHONPATH.delim":   ":",
 					},
 					BuildEnv:         packit.Environment{},
 					LaunchEnv:        packit.Environment{},
@@ -105,20 +113,21 @@ func testBuild(t *testing.T, context spec.G, it spec.S) {
 					Cache:            false,
 					Metadata: map[string]interface{}{
 						"built_at": timeStamp.Format(time.RFC3339Nano),
-						//"cache_sha": "",
 					},
 				},
 			},
 		}))
 
 		Expect(installProcess.ExecuteCall.Receives.WorkingDir).To(Equal(workingDir))
-		Expect(installProcess.ExecuteCall.Receives.TargetDir).To(Equal(filepath.Join(layersDir, pipinstall.PackagesLayerName)))
-		Expect(installProcess.ExecuteCall.Receives.CacheDir).To(Equal(filepath.Join(layersDir, pipinstall.CacheLayerName)))
+		Expect(installProcess.ExecuteCall.Receives.TargetDir).To(Equal(filepath.Join(layersDir, "packages")))
+		Expect(installProcess.ExecuteCall.Receives.CacheDir).To(Equal(filepath.Join(layersDir, "cache")))
 
-		Expect(entryResolver.MergeLayerTypesCall.Receives.Name).To(Equal(pipinstall.SitePackages))
+		Expect(entryResolver.MergeLayerTypesCall.Receives.Name).To(Equal("site-packages"))
 		Expect(entryResolver.MergeLayerTypesCall.Receives.Entries).To(Equal([]packit.BuildpackPlanEntry{
-			{Name: pipinstall.SitePackages},
+			{Name: "site-packages"},
 		}))
+
+		Expect(sitePackagesProcess.ExecuteCall.Receives.LayerPath).To(Equal(filepath.Join(layersDir, "packages")))
 
 		Expect(buffer.String()).To(ContainSubstring("Some Buildpack some-version"))
 		Expect(buffer.String()).To(ContainSubstring("Executing build process"))
@@ -140,9 +149,7 @@ func testBuild(t *testing.T, context spec.G, it spec.S) {
 				CNBPath:    cnbDir,
 				Plan: packit.BuildpackPlan{
 					Entries: []packit.BuildpackPlanEntry{
-						{
-							Name: pipinstall.SitePackages,
-						},
+						{Name: "site-packages"},
 					},
 				},
 				Platform: packit.Platform{Path: "some-platform-path"},
@@ -154,10 +161,11 @@ func testBuild(t *testing.T, context spec.G, it spec.S) {
 			Expect(result).To(Equal(packit.BuildResult{
 				Layers: []packit.Layer{
 					{
-						Name: pipinstall.PackagesLayerName,
-						Path: filepath.Join(layersDir, pipinstall.PackagesLayerName),
+						Name: "packages",
+						Path: filepath.Join(layersDir, "packages"),
 						SharedEnv: packit.Environment{
-							"PYTHONUSERBASE.default": filepath.Join(layersDir, pipinstall.PackagesLayerName),
+							"PYTHONPATH.prepend": "some-site-packages-path",
+							"PYTHONPATH.delim":   ":",
 						},
 						BuildEnv:         packit.Environment{},
 						LaunchEnv:        packit.Environment{},
@@ -167,7 +175,6 @@ func testBuild(t *testing.T, context spec.G, it spec.S) {
 						Cache:            true,
 						Metadata: map[string]interface{}{
 							"built_at": timeStamp.Format(time.RFC3339Nano),
-							//"cache_sha": "",
 						},
 					},
 				},
@@ -191,9 +198,7 @@ func testBuild(t *testing.T, context spec.G, it spec.S) {
 				CNBPath:    cnbDir,
 				Plan: packit.BuildpackPlan{
 					Entries: []packit.BuildpackPlanEntry{
-						{
-							Name: pipinstall.SitePackages,
-						},
+						{Name: "site-packages"},
 					},
 				},
 				Platform: packit.Platform{Path: "some-platform-path"},
@@ -205,10 +210,11 @@ func testBuild(t *testing.T, context spec.G, it spec.S) {
 			Expect(result).To(Equal(packit.BuildResult{
 				Layers: []packit.Layer{
 					{
-						Name: pipinstall.PackagesLayerName,
-						Path: filepath.Join(layersDir, pipinstall.PackagesLayerName),
+						Name: "packages",
+						Path: filepath.Join(layersDir, "packages"),
 						SharedEnv: packit.Environment{
-							"PYTHONUSERBASE.default": filepath.Join(layersDir, pipinstall.PackagesLayerName),
+							"PYTHONPATH.prepend": "some-site-packages-path",
+							"PYTHONPATH.delim":   ":",
 						},
 						BuildEnv:         packit.Environment{},
 						LaunchEnv:        packit.Environment{},
@@ -232,6 +238,7 @@ func testBuild(t *testing.T, context spec.G, it spec.S) {
 				if err != nil {
 					return fmt.Errorf("issue with stub call: %+v", err)
 				}
+
 				return nil
 			}
 			entryResolver.MergeLayerTypesCall.Returns.Launch = true
@@ -248,9 +255,7 @@ func testBuild(t *testing.T, context spec.G, it spec.S) {
 				CNBPath:    cnbDir,
 				Plan: packit.BuildpackPlan{
 					Entries: []packit.BuildpackPlanEntry{
-						{
-							Name: pipinstall.SitePackages,
-						},
+						{Name: "site-packages"},
 					},
 				},
 				Platform: packit.Platform{Path: "some-platform-path"},
@@ -262,10 +267,11 @@ func testBuild(t *testing.T, context spec.G, it spec.S) {
 			Expect(result).To(Equal(packit.BuildResult{
 				Layers: []packit.Layer{
 					{
-						Name: pipinstall.PackagesLayerName,
-						Path: filepath.Join(layersDir, pipinstall.PackagesLayerName),
+						Name: "packages",
+						Path: filepath.Join(layersDir, "packages"),
 						SharedEnv: packit.Environment{
-							"PYTHONUSERBASE.default": filepath.Join(layersDir, pipinstall.PackagesLayerName),
+							"PYTHONPATH.prepend": "some-site-packages-path",
+							"PYTHONPATH.delim":   ":",
 						},
 						BuildEnv:         packit.Environment{},
 						LaunchEnv:        packit.Environment{},
@@ -275,12 +281,11 @@ func testBuild(t *testing.T, context spec.G, it spec.S) {
 						Cache:            true,
 						Metadata: map[string]interface{}{
 							"built_at": timeStamp.Format(time.RFC3339Nano),
-							//"cache_sha": "",
 						},
 					},
 					{
-						Name:             pipinstall.CacheLayerName,
-						Path:             filepath.Join(layersDir, pipinstall.CacheLayerName),
+						Name:             "cache",
+						Path:             filepath.Join(layersDir, "cache"),
 						SharedEnv:        packit.Environment{},
 						BuildEnv:         packit.Environment{},
 						LaunchEnv:        packit.Environment{},
@@ -328,7 +333,7 @@ func testBuild(t *testing.T, context spec.G, it spec.S) {
 
 		context("when install process returns an error", func() {
 			it.Before(func() {
-				installProcess.ExecuteCall.Returns.Error = errors.New("some-error")
+				installProcess.ExecuteCall.Returns.Error = errors.New("could not run install process")
 			})
 
 			it("returns an error", func() {
@@ -349,7 +354,34 @@ func testBuild(t *testing.T, context spec.G, it spec.S) {
 					},
 					Layers: packit.Layers{Path: layersDir},
 				})
-				Expect(err).To(MatchError(ContainSubstring("some-error")))
+				Expect(err).To(MatchError("could not run install process"))
+			})
+		})
+
+		context("when site-packages process returns an error", func() {
+			it.Before(func() {
+				sitePackagesProcess.ExecuteCall.Returns.Err = errors.New("could not find site-packages path")
+			})
+
+			it("returns an error", func() {
+				_, err := build(packit.BuildContext{
+					WorkingDir: workingDir,
+					CNBPath:    cnbDir,
+					Stack:      "some-stack",
+					BuildpackInfo: packit.BuildpackInfo{
+						Name:    "Some Buildpack",
+						Version: "some-version",
+					},
+					Plan: packit.BuildpackPlan{
+						Entries: []packit.BuildpackPlanEntry{
+							{
+								Name: "site-packages",
+							},
+						},
+					},
+					Layers: packit.Layers{Path: layersDir},
+				})
+				Expect(err).To(MatchError("could not find site-packages path"))
 			})
 		})
 	})

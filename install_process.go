@@ -71,6 +71,7 @@ func (p PipInstallProcess) Execute(workingDir, targetPath, cachePath string) err
 	}
 
 	p.logger.Subprocess("Running 'pip %s'", strings.Join(args, " "))
+
 	buffer := bytes.NewBuffer(nil)
 	err = p.executable.Execute(pexec.Execution{
 		Args:   args,
@@ -79,9 +80,8 @@ func (p PipInstallProcess) Execute(workingDir, targetPath, cachePath string) err
 		Stdout: buffer,
 		Stderr: buffer,
 	})
-
 	if err != nil {
-		return fmt.Errorf("pip install failed:\n%s\nerror: %w", buffer.String(), err)
+		return fmt.Errorf("pip install failed:\n%s\nerror: %w", buffer, err)
 	}
 
 	return nil

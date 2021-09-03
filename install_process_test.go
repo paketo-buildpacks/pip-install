@@ -14,6 +14,7 @@ import (
 	"github.com/sclevine/spec"
 
 	. "github.com/onsi/gomega"
+	. "github.com/onsi/gomega/gstruct"
 )
 
 func testInstallProcess(t *testing.T, context spec.G, it spec.S) {
@@ -49,18 +50,20 @@ func testInstallProcess(t *testing.T, context spec.G, it spec.S) {
 			err := pipInstallProcess.Execute(workingDir, packagesLayerPath, cacheLayerPath)
 			Expect(err).NotTo(HaveOccurred())
 
-			Expect(executable.ExecuteCall.Receives.Execution.Args).To(Equal([]string{
-				"install",
-				"--requirement",
-				"requirements.txt",
-				"--exists-action=w",
-				fmt.Sprintf("--cache-dir=%s", cacheLayerPath),
-				"--compile",
-				"--user",
-				"--disable-pip-version-check",
+			Expect(executable.ExecuteCall.Receives.Execution).To(MatchFields(IgnoreExtras, Fields{
+				"Args": Equal([]string{
+					"install",
+					"--requirement",
+					"requirements.txt",
+					"--exists-action=w",
+					fmt.Sprintf("--cache-dir=%s", cacheLayerPath),
+					"--compile",
+					"--user",
+					"--disable-pip-version-check",
+				}),
+				"Dir": Equal(workingDir),
+				"Env": ContainElement(fmt.Sprintf("PYTHONUSERBASE=%s", packagesLayerPath)),
 			}))
-			Expect(executable.ExecuteCall.Receives.Execution.Dir).To(Equal(workingDir))
-			Expect(executable.ExecuteCall.Receives.Execution.Env).To(ContainElement(fmt.Sprintf("PYTHONUSERBASE=%s", packagesLayerPath)))
 		})
 
 		context("when vendor directory exists", func() {
@@ -72,20 +75,22 @@ func testInstallProcess(t *testing.T, context spec.G, it spec.S) {
 				err := pipInstallProcess.Execute(workingDir, packagesLayerPath, cacheLayerPath)
 				Expect(err).NotTo(HaveOccurred())
 
-				Expect(executable.ExecuteCall.Receives.Execution.Args).To(Equal([]string{
-					"install",
-					"--requirement",
-					"requirements.txt",
-					"--ignore-installed",
-					"--exists-action=w",
-					"--no-index",
-					fmt.Sprintf("--find-links=%s", filepath.Join(workingDir, "vendor")),
-					"--compile",
-					"--user",
-					"--disable-pip-version-check",
+				Expect(executable.ExecuteCall.Receives.Execution).To(MatchFields(IgnoreExtras, Fields{
+					"Args": Equal([]string{
+						"install",
+						"--requirement",
+						"requirements.txt",
+						"--ignore-installed",
+						"--exists-action=w",
+						"--no-index",
+						fmt.Sprintf("--find-links=%s", filepath.Join(workingDir, "vendor")),
+						"--compile",
+						"--user",
+						"--disable-pip-version-check",
+					}),
+					"Dir": Equal(workingDir),
+					"Env": ContainElement(fmt.Sprintf("PYTHONUSERBASE=%s", packagesLayerPath)),
 				}))
-				Expect(executable.ExecuteCall.Receives.Execution.Dir).To(Equal(workingDir))
-				Expect(executable.ExecuteCall.Receives.Execution.Env).To(ContainElement(fmt.Sprintf("PYTHONUSERBASE=%s", packagesLayerPath)))
 			})
 		})
 

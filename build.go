@@ -12,6 +12,7 @@ import (
 
 //go:generate faux --interface EntryResolver --output fakes/entry_resolver.go
 //go:generate faux --interface InstallProcess --output fakes/install_process.go
+//go:generate faux --interface SitePackagesProcess --output fakes/site_packages_process.go
 
 // EntryResolver defines the interface for picking the most relevant entry from
 // the Buildpack Plan entries.
@@ -24,13 +25,18 @@ type InstallProcess interface {
 	Execute(workingDir, targetDir, cacheDir string) error
 }
 
+// SitePackagesProcess defines the interface for determining the site-packages path.
+type SitePackagesProcess interface {
+	Execute(layerPath string) (sitePackagesPath string, err error)
+}
+
 // Build will return a packit.BuildFunc that will be invoked during the build
 // phase of the buildpack lifecycle.
 //
 // Build will install the pip dependencies by using the requirements.txt file
 // to a packages layer. It also makes use of a cache layer to reuse the pip
 // cache.
-func Build(entryResolver EntryResolver, installProcess InstallProcess, clock chronos.Clock, logger scribe.Emitter) packit.BuildFunc {
+func Build(entryResolver EntryResolver, installProcess InstallProcess, siteProcess SitePackagesProcess, clock chronos.Clock, logger scribe.Emitter) packit.BuildFunc {
 	return func(context packit.BuildContext) (packit.BuildResult, error) {
 		logger.Title("%s %s", context.BuildpackInfo.Name, context.BuildpackInfo.Version)
 
@@ -63,7 +69,12 @@ func Build(entryResolver EntryResolver, installProcess InstallProcess, clock chr
 		packagesLayer.Cache = packagesLayer.Launch || packagesLayer.Build
 		cacheLayer.Cache = true
 
-		packagesLayer.SharedEnv.Default("PYTHONUSERBASE", packagesLayer.Path)
+		sitePackagesPath, err := siteProcess.Execute(packagesLayer.Path)
+		if err != nil {
+			return packit.BuildResult{}, err
+		}
+
+		packagesLayer.SharedEnv.Prepend("PYTHONPATH", sitePackagesPath, string(os.PathListSeparator))
 		logger.Process("Configuring environment")
 		logger.Subprocess("%s", scribe.NewFormattedMapFromEnvironment(packagesLayer.SharedEnv))
 		logger.Break()
