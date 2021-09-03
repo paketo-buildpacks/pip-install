@@ -11,7 +11,7 @@ This buildpack participates if `requirements.txt` exists at the root the app.
 The buildpack will do the following:
 * At build time:
   - Installs the application packages to a layer made available to the app.
-  - Sets the `PYTHONUSERBASE` to this layer.
+  - Prepends the layer site-packages onto `PYTHONPATH`.
 * At run time:
   - Does nothing
 
@@ -35,14 +35,14 @@ file that looks like the following:
   [requires.metadata]
 
     # Setting the build flag to true will ensure that the site-packages
-    # dependency is available on the $PYTHONUSERBASE for subsequent
+    # dependency is available on the $PYTHONPATH for subsequent
     # buildpacks during their build phase. If you are writing a buildpack that
     # needs site-packages during its build process, this flag should be
     # set to true.
     build = true
 
     # Setting the launch flag to true will ensure that the site-packages
-    # dependency is available on the $PYTHONUSERBASE for the running
+    # dependency is available on the $PYTHONPATH for the running
     # application. If you are writing an application that needs site-packages
     # at runtime, this flag should be set to true.
     launch = true
