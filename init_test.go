@@ -12,5 +12,6 @@ func TestUnitPipInstall(t *testing.T) {
 	suite("Detect", testDetect)
 	suite("Build", testBuild)
 	suite("InstallProcess", testInstallProcess)
+	suite("SiteProcess", testSiteProcess)
 	suite.Run(t)
 }
