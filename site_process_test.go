@@ -8,7 +8,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/paketo-buildpacks/packit/pexec"
+	"github.com/paketo-buildpacks/packit/v2/pexec"
 	pipinstall "github.com/paketo-buildpacks/pip-install"
 	"github.com/paketo-buildpacks/pip-install/fakes"
 	"github.com/sclevine/spec"

@@ -6,7 +6,7 @@ import (
 	"os"
 	"strings"
 
-	"github.com/paketo-buildpacks/packit/pexec"
+	"github.com/paketo-buildpacks/packit/v2/pexec"
 )
 
 // SiteProcess implements the Executable interface.
