@@ -10,9 +10,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/paketo-buildpacks/packit"
-	"github.com/paketo-buildpacks/packit/chronos"
-	"github.com/paketo-buildpacks/packit/scribe"
+	"github.com/paketo-buildpacks/packit/v2"
+	"github.com/paketo-buildpacks/packit/v2/chronos"
+	"github.com/paketo-buildpacks/packit/v2/scribe"
 	pipinstall "github.com/paketo-buildpacks/pip-install"
 	"github.com/paketo-buildpacks/pip-install/fakes"
 	"github.com/sclevine/spec"
