@@ -38,36 +38,16 @@ func NewPipInstallProcess(executable Executable, logger scribe.Emitter) PipInsta
 // vendor directory is present, the pip install command will install from local
 // packages.
 func (p PipInstallProcess) Execute(workingDir, targetPath, cachePath string) error {
+	vendorDir := filepath.Join(workingDir, "vendor")
+
 	var args []string
-	_, err := os.Stat(filepath.Join(workingDir, "vendor"))
-	if err != nil {
-		if errors.Is(err, os.ErrNotExist) {
-			args = []string{
-				"install",
-				"--requirement",
-				"requirements.txt",
-				"--exists-action=w",
-				fmt.Sprintf("--cache-dir=%s", cachePath),
-				"--compile",
-				"--user",
-				"--disable-pip-version-check",
-			}
-		} else {
-			return err
-		}
+	_, err := os.Stat(vendorDir)
+	if err == nil {
+		args = offlineArgs(vendorDir)
+	} else if errors.Is(err, os.ErrNotExist) {
+		args = onlineArgs(cachePath)
 	} else {
-		args = []string{
-			"install",
-			"--requirement",
-			"requirements.txt",
-			"--ignore-installed",
-			"--exists-action=w",
-			"--no-index",
-			fmt.Sprintf("--find-links=%s", filepath.Join(workingDir, "vendor")),
-			"--compile",
-			"--user",
-			"--disable-pip-version-check",
-		}
+		return err
 	}
 
 	p.logger.Subprocess("Running 'pip %s'", strings.Join(args, " "))
@@ -85,4 +65,32 @@ func (p PipInstallProcess) Execute(workingDir, targetPath, cachePath string) err
 	}
 
 	return nil
+}
+
+func onlineArgs(cachePath string) []string {
+	return []string{
+		"install",
+		"--requirement",
+		"requirements.txt",
+		"--exists-action=w",
+		fmt.Sprintf("--cache-dir=%s", cachePath),
+		"--compile",
+		"--user",
+		"--disable-pip-version-check",
+	}
+}
+
+func offlineArgs(vendorDir string) []string {
+	return []string{
+		"install",
+		"--requirement",
+		"requirements.txt",
+		"--ignore-installed",
+		"--exists-action=w",
+		"--no-index",
+		fmt.Sprintf("--find-links=%s", vendorDir),
+		"--compile",
+		"--user",
+		"--disable-pip-version-check",
+	}
 }
