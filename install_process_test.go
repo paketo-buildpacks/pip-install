@@ -45,6 +45,12 @@ func testInstallProcess(t *testing.T, context spec.G, it spec.S) {
 		pipInstallProcess = pipinstall.NewPipInstallProcess(executable, scribe.NewEmitter(bytes.NewBuffer(nil)))
 	})
 
+	it.After(func() {
+		Expect(os.RemoveAll(packagesLayerPath)).To(Succeed())
+		Expect(os.RemoveAll(cacheLayerPath)).To(Succeed())
+		Expect(os.RemoveAll(workingDir)).To(Succeed())
+	})
+
 	context("Execute", func() {
 		it("runs installation", func() {
 			err := pipInstallProcess.Execute(workingDir, packagesLayerPath, cacheLayerPath)
