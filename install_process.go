@@ -34,11 +34,16 @@ func NewPipInstallProcess(executable Executable, logger scribe.Emitter) PipInsta
 }
 
 // Execute installs the pip dependencies from workingDir/requirements.txt into
-// the targetPath. The cachePath is used for the pip cache directory. If the
-// vendor directory is present, the pip install command will install from local
-// packages.
+// the targetPath. The cachePath is used for the pip cache directory.
+//
+// The pip install command will install from local packages if they are found at
+// the directory specified by `BP_PIP_DEST_PATH`, which defaults to `vendor`.
 func (p PipInstallProcess) Execute(workingDir, targetPath, cachePath string) error {
 	vendorDir := filepath.Join(workingDir, "vendor")
+
+	if destPath, exists := os.LookupEnv("BP_PIP_DEST_PATH"); exists {
+		vendorDir = filepath.Join(workingDir, destPath)
+	}
 
 	var args []string
 	_, err := os.Stat(vendorDir)

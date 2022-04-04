@@ -49,6 +49,7 @@ func testInstallProcess(t *testing.T, context spec.G, it spec.S) {
 		Expect(os.RemoveAll(packagesLayerPath)).To(Succeed())
 		Expect(os.RemoveAll(cacheLayerPath)).To(Succeed())
 		Expect(os.RemoveAll(workingDir)).To(Succeed())
+		Expect(os.Unsetenv("BP_PIP_DEST_PATH")).NotTo(HaveOccurred())
 	})
 
 	context("Execute", func() {
@@ -113,6 +114,60 @@ func testInstallProcess(t *testing.T, context spec.G, it spec.S) {
 				it("returns an error", func() {
 					err := pipInstallProcess.Execute(workingDir, packagesLayerPath, cacheLayerPath)
 					Expect(err).To(MatchError(ContainSubstring("permission denied")))
+				})
+			})
+		})
+
+		context("when BP_PIP_DEST_PATH overrides the default vendor directory", func() {
+			it.Before(func() {
+				Expect(os.Setenv("BP_PIP_DEST_PATH", "fake-vendor")).NotTo(HaveOccurred())
+			})
+
+			it("runs installation", func() {
+				err := pipInstallProcess.Execute(workingDir, packagesLayerPath, cacheLayerPath)
+				Expect(err).NotTo(HaveOccurred())
+
+				Expect(executable.ExecuteCall.Receives.Execution).To(MatchFields(IgnoreExtras, Fields{
+					"Args": Equal([]string{
+						"install",
+						"--requirement",
+						"requirements.txt",
+						"--exists-action=w",
+						fmt.Sprintf("--cache-dir=%s", cacheLayerPath),
+						"--compile",
+						"--user",
+						"--disable-pip-version-check",
+					}),
+					"Dir": Equal(workingDir),
+					"Env": ContainElement(fmt.Sprintf("PYTHONUSERBASE=%s", packagesLayerPath)),
+				}))
+			})
+
+			context("when vendor directory exists", func() {
+				it.Before(func() {
+					Expect(os.Mkdir(filepath.Join(workingDir, "fake-vendor"), os.ModeDir)).To(Succeed())
+				})
+
+				it("runs installation", func() {
+					err := pipInstallProcess.Execute(workingDir, packagesLayerPath, cacheLayerPath)
+					Expect(err).NotTo(HaveOccurred())
+
+					Expect(executable.ExecuteCall.Receives.Execution).To(MatchFields(IgnoreExtras, Fields{
+						"Args": Equal([]string{
+							"install",
+							"--requirement",
+							"requirements.txt",
+							"--ignore-installed",
+							"--exists-action=w",
+							"--no-index",
+							fmt.Sprintf("--find-links=%s", filepath.Join(workingDir, "fake-vendor")),
+							"--compile",
+							"--user",
+							"--disable-pip-version-check",
+						}),
+						"Dir": Equal(workingDir),
+						"Env": ContainElement(fmt.Sprintf("PYTHONUSERBASE=%s", packagesLayerPath)),
+					}))
 				})
 			})
 		})

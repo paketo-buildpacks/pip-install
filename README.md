@@ -12,6 +12,7 @@ The buildpack will do the following:
 * At build time:
   - Installs the application packages to a layer made available to the app.
   - Prepends the layer site-packages onto `PYTHONPATH`.
+  - If a vendor directory is available, will attempt to run `pip install` in an offline manner.
 * At run time:
   - Does nothing
 
@@ -62,4 +63,16 @@ can use to build your app as follows: `pack build <app-name> -p <path-to-app>
 To run the unit and integration tests for this buildpack:
 ```
 $ ./scripts/unit.sh && ./scripts/integration.sh
+```
+
+## Configuration
+
+### `BP_PIP_DEST_PATH`
+
+The `BP_PIP_DEST_PATH` variable allows you to specify a custom vendor directory.
+This should be a directory underneath the working directory.
+Will use `./vendor` if not provided.
+
+```shell
+BP_PIP_DEST_PATH=my/custom/vendor-dir
 ```
