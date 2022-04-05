@@ -8,7 +8,6 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
-	"time"
 
 	"github.com/paketo-buildpacks/packit/v2"
 	"github.com/paketo-buildpacks/packit/v2/chronos"
@@ -31,10 +30,8 @@ func testBuild(t *testing.T, context spec.G, it spec.S) {
 		entryResolver       *fakes.EntryResolver
 		installProcess      *fakes.InstallProcess
 		sitePackagesProcess *fakes.SitePackagesProcess
-		clock               chronos.Clock
 
-		timeStamp time.Time
-		buffer    *bytes.Buffer
+		buffer *bytes.Buffer
 
 		build packit.BuildFunc
 	)
@@ -58,16 +55,11 @@ func testBuild(t *testing.T, context spec.G, it spec.S) {
 
 		buffer = bytes.NewBuffer(nil)
 
-		timeStamp = time.Now()
-		clock = chronos.NewClock(func() time.Time {
-			return timeStamp
-		})
-
 		build = pipinstall.Build(
 			entryResolver,
 			installProcess,
 			sitePackagesProcess,
-			clock,
+			chronos.DefaultClock,
 			scribe.NewEmitter(buffer),
 		)
 	})
@@ -111,9 +103,7 @@ func testBuild(t *testing.T, context spec.G, it spec.S) {
 					Build:            false,
 					Launch:           false,
 					Cache:            false,
-					Metadata: map[string]interface{}{
-						"built_at": timeStamp.Format(time.RFC3339Nano),
-					},
+					Metadata:         nil,
 				},
 			},
 		}))
@@ -173,9 +163,7 @@ func testBuild(t *testing.T, context spec.G, it spec.S) {
 						Build:            true,
 						Launch:           true,
 						Cache:            true,
-						Metadata: map[string]interface{}{
-							"built_at": timeStamp.Format(time.RFC3339Nano),
-						},
+						Metadata:         nil,
 					},
 				},
 			}))
@@ -222,9 +210,7 @@ func testBuild(t *testing.T, context spec.G, it spec.S) {
 						Build:            false,
 						Launch:           true,
 						Cache:            true,
-						Metadata: map[string]interface{}{
-							"built_at": timeStamp.Format(time.RFC3339Nano),
-						},
+						Metadata:         nil,
 					},
 				},
 			}))
@@ -279,9 +265,7 @@ func testBuild(t *testing.T, context spec.G, it spec.S) {
 						Build:            true,
 						Launch:           true,
 						Cache:            true,
-						Metadata: map[string]interface{}{
-							"built_at": timeStamp.Format(time.RFC3339Nano),
-						},
+						Metadata:         nil,
 					},
 					{
 						Name:             "cache",
