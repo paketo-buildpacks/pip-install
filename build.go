@@ -61,10 +61,6 @@ func Build(entryResolver EntryResolver, installProcess InstallProcess, siteProce
 		logger.Action("Completed in %s", duration.Round(time.Millisecond))
 		logger.Break()
 
-		packagesLayer.Metadata = map[string]interface{}{
-			"built_at": clock.Now().Format(time.RFC3339Nano),
-		}
-
 		packagesLayer.Launch, packagesLayer.Build = entryResolver.MergeLayerTypes(SitePackages, context.Plan.Entries)
 		packagesLayer.Cache = packagesLayer.Launch || packagesLayer.Build
 		cacheLayer.Cache = true
