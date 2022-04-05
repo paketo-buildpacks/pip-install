@@ -2,12 +2,12 @@ package pipinstall
 
 import (
 	"bytes"
-	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
 
+	"github.com/paketo-buildpacks/packit/v2/fs"
 	"github.com/paketo-buildpacks/packit/v2/pexec"
 	"github.com/paketo-buildpacks/packit/v2/scribe"
 )
@@ -46,19 +46,18 @@ func (p PipInstallProcess) Execute(workingDir, targetPath, cachePath string) err
 	}
 
 	var args []string
-	_, err := os.Stat(vendorDir)
-	if err == nil {
-		args = offlineArgs(vendorDir)
-	} else if errors.Is(err, os.ErrNotExist) {
-		args = onlineArgs(cachePath)
-	} else {
+	if exists, err := fs.Exists(vendorDir); err != nil {
 		return err
+	} else if exists {
+		args = offlineArgs(vendorDir)
+	} else {
+		args = onlineArgs(cachePath)
 	}
 
 	p.logger.Subprocess("Running 'pip %s'", strings.Join(args, " "))
 
 	buffer := bytes.NewBuffer(nil)
-	err = p.executable.Execute(pexec.Execution{
+	err := p.executable.Execute(pexec.Execution{
 		Args:   args,
 		Env:    append(os.Environ(), fmt.Sprintf("PYTHONUSERBASE=%s", targetPath)),
 		Dir:    workingDir,
