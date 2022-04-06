@@ -87,48 +87,5 @@ func testOffline(t *testing.T, context spec.G, it spec.S) {
 			Expect(err).NotTo(HaveOccurred())
 			Expect(string(content)).To(ContainSubstring("Hello, World!"))
 		})
-
-		context("with custom vendor dir", func() {
-			it("builds and runs successfully", func() {
-				var err error
-				var logs fmt.Stringer
-				source, err = occam.Source(filepath.Join("testdata", "default_app_custom_vendor_dir"))
-				Expect(err).NotTo(HaveOccurred())
-
-				image, logs, err = pack.WithNoColor().Build.
-					WithPullPolicy("never").
-					WithBuildpacks(
-						settings.Buildpacks.CPython.Offline,
-						settings.Buildpacks.Pip.Offline,
-						settings.Buildpacks.PipInstall.Offline,
-						settings.Buildpacks.BuildPlan.Online,
-					).
-					WithNetwork("none").
-					WithEnv(map[string]string{
-						"BP_PIP_DEST_PATH": "custom_vendor_dir",
-					}).
-					Execute(name, source)
-				Expect(err).ToNot(HaveOccurred(), logs.String)
-
-				container, err = docker.Container.Run.
-					WithCommand("gunicorn server:app").
-					WithEnv(map[string]string{"PORT": "8080"}).
-					WithPublish("8080").
-					Execute(image.ID)
-				Expect(err).ToNot(HaveOccurred())
-
-				Eventually(container).Should(BeAvailable())
-
-				response, err := http.Get(fmt.Sprintf("http://localhost:%s", container.HostPort("8080")))
-				Expect(err).NotTo(HaveOccurred())
-				defer response.Body.Close()
-
-				Expect(response.StatusCode).To(Equal(http.StatusOK))
-
-				content, err := ioutil.ReadAll(response.Body)
-				Expect(err).NotTo(HaveOccurred())
-				Expect(string(content)).To(ContainSubstring("Hello, World!"))
-			})
-		})
 	})
 }
