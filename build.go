@@ -7,12 +7,14 @@ import (
 	"github.com/paketo-buildpacks/packit/v2"
 	"github.com/paketo-buildpacks/packit/v2/chronos"
 	"github.com/paketo-buildpacks/packit/v2/fs"
+	"github.com/paketo-buildpacks/packit/v2/sbom"
 	"github.com/paketo-buildpacks/packit/v2/scribe"
 )
 
 //go:generate faux --interface EntryResolver --output fakes/entry_resolver.go
 //go:generate faux --interface InstallProcess --output fakes/install_process.go
 //go:generate faux --interface SitePackagesProcess --output fakes/site_packages_process.go
+//go:generate faux --interface SBOMGenerator --output fakes/sbom_generator.go
 
 // EntryResolver defines the interface for picking the most relevant entry from
 // the Buildpack Plan entries.
@@ -30,13 +32,17 @@ type SitePackagesProcess interface {
 	Execute(layerPath string) (sitePackagesPath string, err error)
 }
 
+type SBOMGenerator interface {
+	Generate(dir string) (sbom.SBOM, error)
+}
+
 // Build will return a packit.BuildFunc that will be invoked during the build
 // phase of the buildpack lifecycle.
 //
 // Build will install the pip dependencies by using the requirements.txt file
 // to a packages layer. It also makes use of a cache layer to reuse the pip
 // cache.
-func Build(entryResolver EntryResolver, installProcess InstallProcess, siteProcess SitePackagesProcess, clock chronos.Clock, logger scribe.Emitter) packit.BuildFunc {
+func Build(entryResolver EntryResolver, installProcess InstallProcess, siteProcess SitePackagesProcess, sbomGenerator SBOMGenerator, clock chronos.Clock, logger scribe.Emitter) packit.BuildFunc {
 	return func(context packit.BuildContext) (packit.BuildResult, error) {
 		logger.Title("%s %s", context.BuildpackInfo.Name, context.BuildpackInfo.Version)
 
@@ -66,6 +72,26 @@ func Build(entryResolver EntryResolver, installProcess InstallProcess, siteProce
 		cacheLayer.Cache = true
 
 		sitePackagesPath, err := siteProcess.Execute(packagesLayer.Path)
+		if err != nil {
+			return packit.BuildResult{}, err
+		}
+
+		logger.GeneratingSBOM(packagesLayer.Path)
+
+		var sbomContent sbom.SBOM
+		duration, err = clock.Measure(func() error {
+			sbomContent, err = sbomGenerator.Generate(context.WorkingDir)
+			return err
+		})
+		if err != nil {
+			return packit.BuildResult{}, err
+		}
+		logger.Action("Completed in %s", duration.Round(time.Millisecond))
+		logger.Break()
+
+		logger.FormattingSBOM(context.BuildpackInfo.SBOMFormats...)
+
+		packagesLayer.SBOM, err = sbomContent.InFormats(context.BuildpackInfo.SBOMFormats...)
 		if err != nil {
 			return packit.BuildResult{}, err
 		}
