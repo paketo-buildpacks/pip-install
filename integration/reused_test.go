@@ -77,7 +77,7 @@ func testReused(t *testing.T, context spec.G, it spec.S) {
 			Expect(err).ToNot(HaveOccurred(), logs2.String)
 
 			Expect(logs2).To(ContainLines(
-				"Reusing cache layer 'paketo-buildpacks/pip-install:packages'",
+				fmt.Sprintf("Reusing cache layer '%s:packages'", buildpackInfo.Buildpack.ID),
 			))
 
 			Expect(image2.Buildpacks[2].Layers["packages"].SHA).To(Equal(image1.Buildpacks[2].Layers["packages"].SHA))
