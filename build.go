@@ -97,9 +97,8 @@ func Build(entryResolver EntryResolver, installProcess InstallProcess, siteProce
 		}
 
 		packagesLayer.SharedEnv.Prepend("PYTHONPATH", sitePackagesPath, string(os.PathListSeparator))
-		logger.Process("Configuring environment")
-		logger.Subprocess("%s", scribe.NewFormattedMapFromEnvironment(packagesLayer.SharedEnv))
-		logger.Break()
+
+		logger.EnvironmentVariables(packagesLayer)
 
 		layers := []packit.Layer{packagesLayer}
 		if _, err := os.Stat(cacheLayer.Path); err == nil {
