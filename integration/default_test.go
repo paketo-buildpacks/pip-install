@@ -40,6 +40,9 @@ func testDefault(t *testing.T, context spec.G, it spec.S) {
 			var err error
 			name, err = occam.RandomName()
 			Expect(err).NotTo(HaveOccurred())
+
+			source, err = occam.Source(filepath.Join("testdata", "default_app"))
+			Expect(err).NotTo(HaveOccurred())
 		})
 
 		it.After(func() {
@@ -52,9 +55,6 @@ func testDefault(t *testing.T, context spec.G, it spec.S) {
 		it("builds and runs successfully", func() {
 			var err error
 			var logs fmt.Stringer
-
-			source, err = occam.Source(filepath.Join("testdata", "default_app"))
-			Expect(err).NotTo(HaveOccurred())
 
 			image, logs, err = pack.WithNoColor().Build.
 				WithPullPolicy("never").
@@ -124,7 +124,7 @@ func testDefault(t *testing.T, context spec.G, it spec.S) {
 						"BP_LOG_LEVEL": "DEBUG",
 					}).
 					WithSBOMOutputDir(sbomDir).
-					Execute(name, filepath.Join("testdata", "default_app"))
+					Execute(name, source)
 				Expect(err).ToNot(HaveOccurred(), logs.String)
 
 				container, err = docker.Container.Run.
