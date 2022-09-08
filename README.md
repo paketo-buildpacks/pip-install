@@ -1,5 +1,5 @@
 # Pip Install Cloud Native Buildpack
-The Paketo Pip Install Buildpack is a Cloud Native Buildpack that installs
+The Paketo Buildpack for Pip Install is a Cloud Native Buildpack that installs
 packages using pip and makes it available to the application.
 
 The buildpack is published for consumption at
