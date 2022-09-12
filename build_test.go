@@ -49,7 +49,6 @@ func testBuild(t *testing.T, context spec.G, it spec.S) {
 		Expect(err).NotTo(HaveOccurred())
 
 		Expect(os.MkdirAll(filepath.Join(layersDir, "cache"), os.ModePerm)).To(Succeed())
-		Expect(os.WriteFile(filepath.Join(layersDir, "cache", "some-cache"), []byte{}, 0600)).To(Succeed())
 
 		installProcess = &fakes.InstallProcess{}
 		sitePackagesProcess = &fakes.SitePackagesProcess{}
@@ -230,13 +229,15 @@ func testBuild(t *testing.T, context spec.G, it spec.S) {
 			cacheLayer := result.Layers[1]
 			Expect(cacheLayer.Name).To(Equal("cache"))
 			Expect(cacheLayer.Path).To(Equal(filepath.Join(layersDir, "cache")))
+			Expect(cacheLayer.Metadata["stack"]).NotTo(BeNil())
+			Expect(cacheLayer.Metadata["stack"]).To(Equal("some-stack"))
 
 			Expect(packagesLayer.Build).To(BeTrue())
 			Expect(packagesLayer.Launch).To(BeTrue())
 			Expect(cacheLayer.Cache).To(BeTrue())
 		})
 	})
-	context.Focus("if the stack id changes", func() {
+	context("if the stack id changes", func() {
 		it.Before(func() {
 			Expect(os.WriteFile(filepath.Join(layersDir, "cache.toml"), []byte(`
 [metadata]
@@ -265,6 +266,7 @@ func testBuild(t *testing.T, context spec.G, it spec.S) {
 
 	context("if the stack id is the same", func() {
 		it.Before(func() {
+			Expect(os.WriteFile(filepath.Join(layersDir, "cache", "some-cache"), []byte{}, 0600)).To(Succeed())
 			Expect(os.WriteFile(filepath.Join(layersDir, "cache.toml"), []byte(`
 [metadata]
   stack = "some-stack"
@@ -298,6 +300,27 @@ func testBuild(t *testing.T, context spec.G, it spec.S) {
 
 			it.After(func() {
 				Expect(os.Chmod(layersDir, os.ModePerm)).To(Succeed())
+			})
+
+			it("returns an error", func() {
+				_, err := build(buildContext)
+				Expect(err).To(MatchError(ContainSubstring("permission denied")))
+			})
+		})
+
+		context("when the cache layer cannot be reset", func() {
+			it.Before(func() {
+				Expect(os.MkdirAll(filepath.Join(layersDir, "cache"), os.ModePerm)).To(Succeed())
+				Expect(os.WriteFile(filepath.Join(layersDir, "cache", "some-cache"), []byte{}, 0600)).To(Succeed())
+				Expect(os.WriteFile(filepath.Join(layersDir, "cache.toml"), []byte(`
+[metadata]
+  stack = "other-stack"
+`), 0644))
+				Expect(os.Chmod(filepath.Join(layersDir, "cache"), 0500)).To(Succeed())
+			})
+
+			it.After(func() {
+				Expect(os.Chmod(filepath.Join(layersDir, "cache"), os.ModePerm)).To(Succeed())
 			})
 
 			it("returns an error", func() {
