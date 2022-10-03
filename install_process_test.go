@@ -29,26 +29,13 @@ func testInstallProcess(t *testing.T, context spec.G, it spec.S) {
 	)
 
 	it.Before(func() {
-		var err error
-		packagesLayerPath, err = os.MkdirTemp("", "packages")
-		Expect(err).NotTo(HaveOccurred())
-
-		cacheLayerPath, err = os.MkdirTemp("", "cache")
-		Expect(err).NotTo(HaveOccurred())
-
-		workingDir, err = os.MkdirTemp("", "workingdir")
-		Expect(err).NotTo(HaveOccurred())
+		packagesLayerPath = t.TempDir()
+		cacheLayerPath = t.TempDir()
+		workingDir = t.TempDir()
 
 		executable = &fakes.Executable{}
 
 		pipInstallProcess = pipinstall.NewPipInstallProcess(executable, scribe.NewEmitter(bytes.NewBuffer(nil)))
-	})
-
-	it.After(func() {
-		Expect(os.RemoveAll(packagesLayerPath)).To(Succeed())
-		Expect(os.RemoveAll(cacheLayerPath)).To(Succeed())
-		Expect(os.RemoveAll(workingDir)).To(Succeed())
-		Expect(os.Unsetenv("BP_PIP_DEST_PATH")).NotTo(HaveOccurred())
 	})
 
 	context("Execute", func() {
@@ -119,7 +106,7 @@ func testInstallProcess(t *testing.T, context spec.G, it spec.S) {
 
 		context("when BP_PIP_DEST_PATH overrides the default vendor directory", func() {
 			it.Before(func() {
-				Expect(os.Setenv("BP_PIP_DEST_PATH", "fake-vendor")).NotTo(HaveOccurred())
+				t.Setenv("BP_PIP_DEST_PATH", "fake-vendor")
 			})
 
 			it("runs installation", func() {

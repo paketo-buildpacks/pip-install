@@ -20,11 +20,9 @@ func testDetect(t *testing.T, context spec.G, it spec.S) {
 	)
 
 	it.Before(func() {
-		var err error
-		workingDir, err = os.MkdirTemp("", "working-dir")
-		Expect(err).NotTo(HaveOccurred())
+		workingDir = t.TempDir()
 
-		err = os.WriteFile(filepath.Join(workingDir, "requirements.txt"), []byte{}, 0644)
+		err := os.WriteFile(filepath.Join(workingDir, "requirements.txt"), []byte{}, 0644)
 		Expect(err).NotTo(HaveOccurred())
 
 		detect = pipinstall.Detect()

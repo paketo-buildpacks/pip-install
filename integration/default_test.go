@@ -99,14 +99,8 @@ func testDefault(t *testing.T, context spec.G, it spec.S) {
 			)
 
 			it.Before(func() {
-				var err error
-				sbomDir, err = os.MkdirTemp("", "sbom")
-				Expect(err).NotTo(HaveOccurred())
+				sbomDir = t.TempDir()
 				Expect(os.Chmod(sbomDir, os.ModePerm)).To(Succeed())
-			})
-
-			it.After(func() {
-				Expect(os.RemoveAll(sbomDir)).To(Succeed())
 			})
 
 			it("writes SBOM files to the layer and label metadata", func() {

@@ -26,9 +26,7 @@ func testSiteProcess(t *testing.T, context spec.G, it spec.S) {
 	)
 
 	it.Before(func() {
-		var err error
-		layerPath, err = os.MkdirTemp("", "layer")
-		Expect(err).NotTo(HaveOccurred())
+		layerPath = t.TempDir()
 
 		executable = &fakes.Executable{}
 		executable.ExecuteCall.Stub = func(execution pexec.Execution) error {
@@ -39,10 +37,6 @@ func testSiteProcess(t *testing.T, context spec.G, it spec.S) {
 		}
 
 		process = pipinstall.NewSiteProcess(executable)
-	})
-
-	it.After(func() {
-		Expect(os.RemoveAll(layerPath)).To(Succeed())
 	})
 
 	context("Execute", func() {
