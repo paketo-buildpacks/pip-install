@@ -4,11 +4,12 @@ go 1.16
 
 require (
 	github.com/BurntSushi/toml v1.2.0
-	github.com/CycloneDX/cyclonedx-go v0.7.0 // indirect
+	github.com/CycloneDX/cyclonedx-go v0.6.0 // indirect
 	github.com/DataDog/zstd v1.5.2 // indirect
 	github.com/Microsoft/go-winio v0.6.0 // indirect
 	github.com/anchore/syft v0.58.0 // indirect
 	github.com/bmatcuk/doublestar/v4 v4.2.0 // indirect
+	github.com/bradleyjkemp/cupaloy/v2 v2.8.0 // indirect
 	github.com/docker/cli v20.10.18+incompatible // indirect
 	github.com/docker/docker v20.10.18+incompatible // indirect
 	github.com/docker/docker-credential-helpers v0.7.0 // indirect
