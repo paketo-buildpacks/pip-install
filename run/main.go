@@ -5,7 +5,6 @@ import (
 
 	"github.com/paketo-buildpacks/packit/v2"
 	"github.com/paketo-buildpacks/packit/v2/chronos"
-	"github.com/paketo-buildpacks/packit/v2/draft"
 	"github.com/paketo-buildpacks/packit/v2/pexec"
 	"github.com/paketo-buildpacks/packit/v2/sbom"
 	"github.com/paketo-buildpacks/packit/v2/scribe"
@@ -24,7 +23,6 @@ func main() {
 	packit.Run(
 		pipinstall.Detect(),
 		pipinstall.Build(
-			draft.NewPlanner(),
 			pipinstall.NewPipInstallProcess(pexec.NewExecutable("pip"), logger),
 			pipinstall.NewSiteProcess(pexec.NewExecutable("python")),
 			Generator{},

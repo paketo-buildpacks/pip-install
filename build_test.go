@@ -26,7 +26,6 @@ func testBuild(t *testing.T, context spec.G, it spec.S) {
 		workingDir string
 		cnbDir     string
 
-		entryResolver       *fakes.EntryResolver
 		installProcess      *fakes.InstallProcess
 		sitePackagesProcess *fakes.SitePackagesProcess
 		sbomGenerator       *fakes.SBOMGenerator
@@ -49,12 +48,9 @@ func testBuild(t *testing.T, context spec.G, it spec.S) {
 		sbomGenerator = &fakes.SBOMGenerator{}
 		sbomGenerator.GenerateCall.Returns.SBOM = sbom.SBOM{}
 
-		entryResolver = &fakes.EntryResolver{}
-
 		buffer = bytes.NewBuffer(nil)
 
 		build = pipinstall.Build(
-			entryResolver,
 			installProcess,
 			sitePackagesProcess,
 			sbomGenerator,
@@ -72,7 +68,10 @@ func testBuild(t *testing.T, context spec.G, it spec.S) {
 			CNBPath:    cnbDir,
 			Plan: packit.BuildpackPlan{
 				Entries: []packit.BuildpackPlanEntry{
-					{Name: "site-packages"},
+					{
+						Name:     "site-packages",
+						Metadata: map[string]interface{}{},
+					},
 				},
 			},
 			Platform: packit.Platform{Path: "some-platform-path"},
@@ -119,11 +118,6 @@ func testBuild(t *testing.T, context spec.G, it spec.S) {
 		Expect(installProcess.ExecuteCall.Receives.TargetDir).To(Equal(filepath.Join(layersDir, "packages")))
 		Expect(installProcess.ExecuteCall.Receives.CacheDir).To(Equal(filepath.Join(layersDir, "cache")))
 
-		Expect(entryResolver.MergeLayerTypesCall.Receives.Name).To(Equal("site-packages"))
-		Expect(entryResolver.MergeLayerTypesCall.Receives.Entries).To(Equal([]packit.BuildpackPlanEntry{
-			{Name: "site-packages"},
-		}))
-
 		Expect(sitePackagesProcess.ExecuteCall.Receives.LayerPath).To(Equal(filepath.Join(layersDir, "packages")))
 
 		Expect(buffer.String()).To(ContainSubstring("Some Buildpack some-version"))
@@ -134,27 +128,12 @@ func testBuild(t *testing.T, context spec.G, it spec.S) {
 
 	context("site-packages required at build and launch", func() {
 		it.Before(func() {
-			entryResolver.MergeLayerTypesCall.Returns.Launch = true
-			entryResolver.MergeLayerTypesCall.Returns.Build = true
+			buildContext.Plan.Entries[0].Metadata["launch"] = true
+			buildContext.Plan.Entries[0].Metadata["build"] = true
 		})
 
 		it("layer's build, launch, cache flags must be set", func() {
-			result, err := build(packit.BuildContext{
-				BuildpackInfo: packit.BuildpackInfo{
-					Name:    "Some Buildpack",
-					Version: "some-version",
-				},
-				WorkingDir: workingDir,
-				CNBPath:    cnbDir,
-				Plan: packit.BuildpackPlan{
-					Entries: []packit.BuildpackPlanEntry{
-						{Name: "site-packages"},
-					},
-				},
-				Platform: packit.Platform{Path: "some-platform-path"},
-				Layers:   packit.Layers{Path: layersDir},
-				Stack:    "some-stack",
-			})
+			result, err := build(buildContext)
 			Expect(err).NotTo(HaveOccurred())
 
 			Expect(result.Layers).To(HaveLen(1))
@@ -170,8 +149,8 @@ func testBuild(t *testing.T, context spec.G, it spec.S) {
 
 	context("site-packages required at launch", func() {
 		it.Before(func() {
-			entryResolver.MergeLayerTypesCall.Returns.Launch = true
-			entryResolver.MergeLayerTypesCall.Returns.Build = false
+			buildContext.Plan.Entries[0].Metadata["launch"] = true
+			buildContext.Plan.Entries[0].Metadata["build"] = false
 		})
 
 		it("layer's build, cache flags must be set", func() {
@@ -195,8 +174,8 @@ func testBuild(t *testing.T, context spec.G, it spec.S) {
 				Expect(os.MkdirAll(filepath.Join(cachePath, "something"), os.ModePerm)).To(Succeed())
 				return nil
 			}
-			entryResolver.MergeLayerTypesCall.Returns.Launch = true
-			entryResolver.MergeLayerTypesCall.Returns.Build = true
+			buildContext.Plan.Entries[0].Metadata["launch"] = true
+			buildContext.Plan.Entries[0].Metadata["build"] = true
 		})
 
 		it("result should include a cache layer", func() {

@@ -6,6 +6,7 @@ import (
 
 	"github.com/paketo-buildpacks/packit/v2"
 	"github.com/paketo-buildpacks/packit/v2/chronos"
+	"github.com/paketo-buildpacks/packit/v2/draft"
 	"github.com/paketo-buildpacks/packit/v2/fs"
 	"github.com/paketo-buildpacks/packit/v2/sbom"
 	"github.com/paketo-buildpacks/packit/v2/scribe"
@@ -42,7 +43,7 @@ type SBOMGenerator interface {
 // Build will install the pip dependencies by using the requirements.txt file
 // to a packages layer. It also makes use of a cache layer to reuse the pip
 // cache.
-func Build(entryResolver EntryResolver, installProcess InstallProcess, siteProcess SitePackagesProcess, sbomGenerator SBOMGenerator, clock chronos.Clock, logger scribe.Emitter) packit.BuildFunc {
+func Build(installProcess InstallProcess, siteProcess SitePackagesProcess, sbomGenerator SBOMGenerator, clock chronos.Clock, logger scribe.Emitter) packit.BuildFunc {
 	return func(context packit.BuildContext) (packit.BuildResult, error) {
 		logger.Title("%s %s", context.BuildpackInfo.Name, context.BuildpackInfo.Version)
 
@@ -67,7 +68,9 @@ func Build(entryResolver EntryResolver, installProcess InstallProcess, siteProce
 		logger.Action("Completed in %s", duration.Round(time.Millisecond))
 		logger.Break()
 
-		packagesLayer.Launch, packagesLayer.Build = entryResolver.MergeLayerTypes(SitePackages, context.Plan.Entries)
+		planner := draft.NewPlanner()
+
+		packagesLayer.Launch, packagesLayer.Build = planner.MergeLayerTypes(SitePackages, context.Plan.Entries)
 		packagesLayer.Cache = packagesLayer.Launch || packagesLayer.Build
 		cacheLayer.Cache = true
 
