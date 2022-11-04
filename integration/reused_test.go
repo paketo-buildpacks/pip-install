@@ -28,9 +28,9 @@ func testReused(t *testing.T, context spec.G, it spec.S) {
 
 	context("when the buildpack is run with pack build", func() {
 		var (
-			image1, image2 occam.Image
-			name           string
-			source         string
+			images = map[string]bool{}
+			name   string
+			source string
 		)
 
 		it.Before(func() {
@@ -40,8 +40,9 @@ func testReused(t *testing.T, context spec.G, it spec.S) {
 		})
 
 		it.After(func() {
-			Expect(docker.Image.Remove.Execute(image1.ID)).To(Succeed())
-			Expect(docker.Image.Remove.Execute(image2.ID)).To(Succeed())
+			for id := range images {
+				Expect(docker.Image.Remove.Execute(id)).To(Succeed())
+			}
 			Expect(docker.Volume.Remove.Execute(occam.CacheVolumeNames(name))).To(Succeed())
 			Expect(os.RemoveAll(source)).To(Succeed())
 		})
@@ -54,7 +55,7 @@ func testReused(t *testing.T, context spec.G, it spec.S) {
 			source, err = occam.Source(filepath.Join("testdata", "default_app"))
 			Expect(err).NotTo(HaveOccurred())
 
-			image1, logs1, err = pack.WithNoColor().Build.
+			image1, logs1, err := pack.WithNoColor().Build.
 				WithPullPolicy("never").
 				WithBuildpacks(
 					settings.Buildpacks.CPython.Online,
@@ -64,8 +65,9 @@ func testReused(t *testing.T, context spec.G, it spec.S) {
 				).
 				Execute(name, source)
 			Expect(err).ToNot(HaveOccurred(), logs1.String)
+			images[image1.ID] = true
 
-			image2, logs2, err = pack.WithNoColor().Build.
+			image2, logs2, err := pack.WithNoColor().Build.
 				WithPullPolicy("never").
 				WithBuildpacks(
 					settings.Buildpacks.CPython.Online,
@@ -75,6 +77,7 @@ func testReused(t *testing.T, context spec.G, it spec.S) {
 				).
 				Execute(name, source)
 			Expect(err).ToNot(HaveOccurred(), logs2.String)
+			images[image2.ID] = true
 
 			Expect(logs2).To(ContainLines(
 				fmt.Sprintf("Reusing cache layer '%s:packages'", buildpackInfo.Buildpack.ID),
