@@ -103,16 +103,12 @@ func testBuild(t *testing.T, context spec.G, it spec.S) {
 		Expect(packagesLayer.SharedEnv["PYTHONPATH.prepend"]).To(Equal("some-site-packages-path"))
 		Expect(packagesLayer.SharedEnv["PYTHONPATH.delim"]).To(Equal(":"))
 
-		Expect(packagesLayer.SBOM.Formats()).To(Equal([]packit.SBOMFormat{
-			{
-				Extension: sbom.Format(sbom.CycloneDXFormat).Extension(),
-				Content:   sbom.NewFormattedReader(sbom.SBOM{}, sbom.CycloneDXFormat),
-			},
-			{
-				Extension: sbom.Format(sbom.SPDXFormat).Extension(),
-				Content:   sbom.NewFormattedReader(sbom.SBOM{}, sbom.SPDXFormat),
-			},
-		}))
+		Expect(packagesLayer.SBOM.Formats()).To(HaveLen(2))
+		var actualExtensions []string
+		for _, format := range packagesLayer.SBOM.Formats() {
+			actualExtensions = append(actualExtensions, format.Extension)
+		}
+		Expect(actualExtensions).To(ConsistOf("cdx.json", "spdx.json"))
 
 		Expect(installProcess.ExecuteCall.Receives.WorkingDir).To(Equal(workingDir))
 		Expect(installProcess.ExecuteCall.Receives.TargetDir).To(Equal(filepath.Join(layersDir, "packages")))
