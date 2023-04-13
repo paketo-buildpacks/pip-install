@@ -1,7 +1,6 @@
 package pipinstall
 
 import (
-	"bytes"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -56,16 +55,15 @@ func (p PipInstallProcess) Execute(workingDir, targetPath, cachePath string) err
 
 	p.logger.Subprocess("Running 'pip %s'", strings.Join(args, " "))
 
-	buffer := bytes.NewBuffer(nil)
 	err := p.executable.Execute(pexec.Execution{
 		Args:   args,
 		Env:    append(os.Environ(), fmt.Sprintf("PYTHONUSERBASE=%s", targetPath)),
 		Dir:    workingDir,
-		Stdout: buffer,
-		Stderr: buffer,
+		Stdout: p.logger.ActionWriter,
+		Stderr: p.logger.ActionWriter,
 	})
 	if err != nil {
-		return fmt.Errorf("pip install failed:\n%s\nerror: %w", buffer, err)
+		return fmt.Errorf("pip install failed:\nerror: %w", err)
 	}
 
 	return nil
