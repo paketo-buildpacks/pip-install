@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/paketo-buildpacks/packit/v2/pexec"
 	"github.com/paketo-buildpacks/packit/v2/scribe"
 	pipinstall "github.com/paketo-buildpacks/pip-install"
 	"github.com/paketo-buildpacks/pip-install/fakes"
@@ -14,6 +15,7 @@ import (
 
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/gstruct"
+	. "github.com/paketo-buildpacks/occam/matchers"
 )
 
 func testInstallProcess(t *testing.T, context spec.G, it spec.S) {
@@ -24,6 +26,7 @@ func testInstallProcess(t *testing.T, context spec.G, it spec.S) {
 		cacheLayerPath    string
 		workingDir        string
 		executable        *fakes.Executable
+		buffer            *bytes.Buffer
 
 		pipInstallProcess pipinstall.PipInstallProcess
 	)
@@ -34,8 +37,14 @@ func testInstallProcess(t *testing.T, context spec.G, it spec.S) {
 		workingDir = t.TempDir()
 
 		executable = &fakes.Executable{}
+		executable.ExecuteCall.Stub = func(execution pexec.Execution) error {
+			fmt.Fprintln(execution.Stdout, "stdout output")
+			fmt.Fprintln(execution.Stderr, "stderr output")
+			return nil
+		}
+		buffer = bytes.NewBuffer(nil)
 
-		pipInstallProcess = pipinstall.NewPipInstallProcess(executable, scribe.NewEmitter(bytes.NewBuffer(nil)))
+		pipInstallProcess = pipinstall.NewPipInstallProcess(executable, scribe.NewEmitter(buffer))
 	})
 
 	context("Execute", func() {
@@ -57,6 +66,11 @@ func testInstallProcess(t *testing.T, context spec.G, it spec.S) {
 				"Dir": Equal(workingDir),
 				"Env": ContainElement(fmt.Sprintf("PYTHONUSERBASE=%s", packagesLayerPath)),
 			}))
+			Expect(buffer.String()).To(ContainLines(
+				fmt.Sprintf("    Running 'pip install --requirement requirements.txt --exists-action=w --cache-dir=%s --compile --user --disable-pip-version-check'", cacheLayerPath),
+				"      stdout output",
+				"      stderr output",
+			))
 		})
 
 		context("when vendor directory exists", func() {
@@ -84,6 +98,11 @@ func testInstallProcess(t *testing.T, context spec.G, it spec.S) {
 					"Dir": Equal(workingDir),
 					"Env": ContainElement(fmt.Sprintf("PYTHONUSERBASE=%s", packagesLayerPath)),
 				}))
+				Expect(buffer.String()).To(ContainLines(
+					fmt.Sprintf("    Running 'pip install --requirement requirements.txt --ignore-installed --exists-action=w --no-index --find-links=%s --compile --user --disable-pip-version-check'", filepath.Join(workingDir, "vendor")),
+					"      stdout output",
+					"      stderr output",
+				))
 			})
 		})
 
