@@ -1,11 +1,10 @@
 package pipinstall
 
 import (
-	"errors"
-	"os"
 	"path/filepath"
 
 	"github.com/paketo-buildpacks/packit/v2"
+	"github.com/paketo-buildpacks/packit/v2/fs"
 )
 
 // BuildPlanMetadata is the buildpack specific data included in build plan
@@ -22,13 +21,13 @@ type BuildPlanMetadata struct {
 // and requires cpython and pip at build.
 func Detect() packit.DetectFunc {
 	return func(context packit.DetectContext) (packit.DetectResult, error) {
-		_, err := os.Stat(filepath.Join(context.WorkingDir, "requirements.txt"))
+		exists, err := fs.Exists(filepath.Join(context.WorkingDir, "requirements.txt"))
 		if err != nil {
-			if errors.Is(err, os.ErrNotExist) {
-				return packit.DetectResult{}, packit.Fail
-			}
-
 			return packit.DetectResult{}, err
+		}
+
+		if !exists {
+			return packit.DetectResult{}, packit.Fail.WithMessage("no 'requirements.txt' found")
 		}
 
 		return packit.DetectResult{
