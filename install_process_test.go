@@ -176,5 +176,31 @@ func testInstallProcess(t *testing.T, context spec.G, it spec.S) {
 				})
 			})
 		})
+
+		context("when BP_PIP_REQUIREMENT overrides the default requirement path", func() {
+			it.Before(func() {
+				t.Setenv("BP_PIP_REQUIREMENT", "requirements-dev.txt")
+			})
+
+			it("runs installation", func() {
+				err := pipInstallProcess.Execute(workingDir, packagesLayerPath, cacheLayerPath)
+				Expect(err).NotTo(HaveOccurred())
+
+				Expect(executable.ExecuteCall.Receives.Execution).To(MatchFields(IgnoreExtras, Fields{
+					"Args": Equal([]string{
+						"install",
+						"--requirement",
+						"requirements-dev.txt",
+						"--exists-action=w",
+						fmt.Sprintf("--cache-dir=%s", cacheLayerPath),
+						"--compile",
+						"--user",
+						"--disable-pip-version-check",
+					}),
+					"Dir": Equal(workingDir),
+					"Env": ContainElement(fmt.Sprintf("PYTHONUSERBASE=%s", packagesLayerPath)),
+				}))
+			})
+		})
 	})
 }

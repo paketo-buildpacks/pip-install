@@ -38,8 +38,12 @@ func NewPipInstallProcess(executable Executable, logger scribe.Emitter) PipInsta
 // The pip install command will install from local packages if they are found at
 // the directory specified by `BP_PIP_DEST_PATH`, which defaults to `vendor`.
 func (p PipInstallProcess) Execute(workingDir, targetPath, cachePath string) error {
-	vendorDir := filepath.Join(workingDir, "vendor")
+	requirementPath, exists := os.LookupEnv("BP_PIP_REQUIREMENT")
+	if !exists {
+		requirementPath = "requirements.txt"
+	}
 
+	vendorDir := filepath.Join(workingDir, "vendor")
 	if destPath, exists := os.LookupEnv("BP_PIP_DEST_PATH"); exists {
 		vendorDir = filepath.Join(workingDir, destPath)
 	}
@@ -48,9 +52,9 @@ func (p PipInstallProcess) Execute(workingDir, targetPath, cachePath string) err
 	if exists, err := fs.Exists(vendorDir); err != nil {
 		return err
 	} else if exists {
-		args = offlineArgs(vendorDir)
+		args = offlineArgs(vendorDir, requirementPath)
 	} else {
-		args = onlineArgs(cachePath)
+		args = onlineArgs(cachePath, requirementPath)
 	}
 
 	p.logger.Subprocess("Running 'pip %s'", strings.Join(args, " "))
@@ -69,11 +73,11 @@ func (p PipInstallProcess) Execute(workingDir, targetPath, cachePath string) err
 	return nil
 }
 
-func onlineArgs(cachePath string) []string {
+func onlineArgs(cachePath string, requirementPath string) []string {
 	return []string{
 		"install",
 		"--requirement",
-		"requirements.txt",
+		requirementPath,
 		"--exists-action=w",
 		fmt.Sprintf("--cache-dir=%s", cachePath),
 		"--compile",
@@ -82,11 +86,11 @@ func onlineArgs(cachePath string) []string {
 	}
 }
 
-func offlineArgs(vendorDir string) []string {
+func offlineArgs(vendorDir string, requirementPath string) []string {
 	return []string{
 		"install",
 		"--requirement",
-		"requirements.txt",
+		requirementPath,
 		"--ignore-installed",
 		"--exists-action=w",
 		"--no-index",
