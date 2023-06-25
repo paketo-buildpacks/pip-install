@@ -76,3 +76,13 @@ Will use `./vendor` if not provided.
 ```shell
 BP_PIP_DEST_PATH=my/custom/vendor-dir
 ```
+
+### `BP_PIP_REQUIREMENT`
+
+The `BP_PIP_REQUIREMENT` variable allows you to specify a custom pip requirement path.
+This should be a file underneath the working directory.
+Will use `./requirements.txt` if not provided.
+
+```shell
+BP_PIP_REQUIREMENT=requirements-dev.txt
+```
