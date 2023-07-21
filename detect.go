@@ -23,18 +23,16 @@ type BuildPlanMetadata struct {
 // and requires cpython and pip at build.
 func Detect() packit.DetectFunc {
 	return func(context packit.DetectContext) (packit.DetectResult, error) {
-		requirementPath, exists := os.LookupEnv("BP_PIP_REQUIREMENT")
-		if !exists {
-			requirementPath = "requirements.txt"
-		}
+		_, requirementEnvExists := os.LookupEnv("BP_PIP_REQUIREMENT")
+		defaultRequirement := "requirements.txt"
 
-		exists, err := fs.Exists(filepath.Join(context.WorkingDir, requirementPath))
+		defaultRequirementExists, err := fs.Exists(filepath.Join(context.WorkingDir, defaultRequirement))
 		if err != nil {
 			return packit.DetectResult{}, err
 		}
 
-		if !exists {
-			return packit.DetectResult{}, packit.Fail.WithMessage(fmt.Sprintf("no '%s' found", requirementPath))
+		if !requirementEnvExists && !defaultRequirementExists {
+			return packit.DetectResult{}, packit.Fail.WithMessage(fmt.Sprintf("BP_PIP_REQUIREMENT not set and no '%s' found", defaultRequirement))
 		}
 
 		return packit.DetectResult{

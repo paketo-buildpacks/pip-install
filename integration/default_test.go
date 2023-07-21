@@ -70,7 +70,7 @@ func testDefault(t *testing.T, context spec.G, it spec.S) {
 			Expect(logs).To(ContainLines(
 				MatchRegexp(fmt.Sprintf(`%s \d+\.\d+\.\d+`, buildpackInfo.Buildpack.Name)),
 				"  Executing build process",
-				MatchRegexp(fmt.Sprintf("    Running 'pip install --requirement requirements.txt --exists-action=w --cache-dir=/layers/%s/cache --compile --user --disable-pip-version-check'", strings.ReplaceAll(buildpackInfo.Buildpack.ID, "/", "_"))),
+				MatchRegexp(fmt.Sprintf("    Running 'pip install --exists-action=w --cache-dir=/layers/%s/cache --compile --user --disable-pip-version-check --requirement=requirements.txt'", strings.ReplaceAll(buildpackInfo.Buildpack.ID, "/", "_"))),
 			))
 			Expect(logs).To(ContainLines(
 				MatchRegexp(`      Completed in \d+\.\d+`),
@@ -159,7 +159,7 @@ func testDefault(t *testing.T, context spec.G, it spec.S) {
 			it("builds and runs successfully", func() {
 				var err error
 				var logs fmt.Stringer
-	
+
 				image, logs, err = pack.WithNoColor().Build.
 					WithPullPolicy("never").
 					WithBuildpacks(
@@ -169,15 +169,15 @@ func testDefault(t *testing.T, context spec.G, it spec.S) {
 						settings.Buildpacks.BuildPlan.Online,
 					).
 					WithEnv(map[string]string{
-						"BP_PIP_REQUIREMENT": "requirements-dev.txt",
+						"BP_PIP_REQUIREMENT": "requirements.txt requirements-lint.txt",
 					}).
 					Execute(name, source)
 				Expect(err).ToNot(HaveOccurred(), logs.String)
-	
+
 				Expect(logs).To(ContainLines(
 					MatchRegexp(fmt.Sprintf(`%s \d+\.\d+\.\d+`, buildpackInfo.Buildpack.Name)),
 					"  Executing build process",
-					MatchRegexp(fmt.Sprintf("    Running 'pip install --requirement requirements-dev.txt --exists-action=w --cache-dir=/layers/%s/cache --compile --user --disable-pip-version-check'", strings.ReplaceAll(buildpackInfo.Buildpack.ID, "/", "_"))),
+					MatchRegexp(fmt.Sprintf("    Running 'pip install --exists-action=w --cache-dir=/layers/%s/cache --compile --user --disable-pip-version-check --requirement=requirements.txt --requirement=requirements-lint.txt'", strings.ReplaceAll(buildpackInfo.Buildpack.ID, "/", "_"))),
 				))
 				Expect(logs).To(ContainLines(
 					MatchRegexp(`      Successfully installed.* flake8-\d+\.\d+\.\d+.* isort-\d+\.\d+\.\d+`),
@@ -190,14 +190,14 @@ func testDefault(t *testing.T, context spec.G, it spec.S) {
 					"  Configuring launch environment",
 					MatchRegexp(fmt.Sprintf(`    PYTHONPATH -> "/layers/%s/packages/lib/python\d+\.\d+/site-packages:\$PYTHONPATH"`, strings.ReplaceAll(buildpackInfo.Buildpack.ID, "/", "_"))),
 				))
-	
+
 				container, err = docker.Container.Run.
 					WithCommand("gunicorn server:app").
 					WithEnv(map[string]string{"PORT": "8080"}).
 					WithPublish("8080").
 					Execute(image.ID)
 				Expect(err).ToNot(HaveOccurred())
-	
+
 				Eventually(container).Should(BeAvailable())
 				Eventually(container).Should(Serve(ContainSubstring("Hello, World!")).OnPort(8080))
 			})

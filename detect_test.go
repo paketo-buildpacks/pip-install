@@ -65,7 +65,7 @@ func testDetect(t *testing.T, context spec.G, it spec.S) {
 				_, err := detect(packit.DetectContext{
 					WorkingDir: workingDir,
 				})
-				Expect(err).To(MatchError(packit.Fail.WithMessage("no 'requirements.txt' found")))
+				Expect(err).To(MatchError(packit.Fail.WithMessage("BP_PIP_REQUIREMENT not set and no 'requirements.txt' found")))
 			})
 		})
 
