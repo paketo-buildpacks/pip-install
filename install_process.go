@@ -38,8 +38,12 @@ func NewPipInstallProcess(executable Executable, logger scribe.Emitter) PipInsta
 // The pip install command will install from local packages if they are found at
 // the directory specified by `BP_PIP_DEST_PATH`, which defaults to `vendor`.
 func (p PipInstallProcess) Execute(workingDir, targetPath, cachePath string) error {
-	vendorDir := filepath.Join(workingDir, "vendor")
+	requirements, exists := os.LookupEnv("BP_PIP_REQUIREMENT")
+	if !exists {
+		requirements = "requirements.txt"
+	}
 
+	vendorDir := filepath.Join(workingDir, "vendor")
 	if destPath, exists := os.LookupEnv("BP_PIP_DEST_PATH"); exists {
 		vendorDir = filepath.Join(workingDir, destPath)
 	}
@@ -48,9 +52,9 @@ func (p PipInstallProcess) Execute(workingDir, targetPath, cachePath string) err
 	if exists, err := fs.Exists(vendorDir); err != nil {
 		return err
 	} else if exists {
-		args = offlineArgs(vendorDir)
+		args = offlineArgs(vendorDir, requirements)
 	} else {
-		args = onlineArgs(cachePath)
+		args = onlineArgs(cachePath, requirements)
 	}
 
 	p.logger.Subprocess("Running 'pip %s'", strings.Join(args, " "))
@@ -69,24 +73,30 @@ func (p PipInstallProcess) Execute(workingDir, targetPath, cachePath string) err
 	return nil
 }
 
-func onlineArgs(cachePath string) []string {
-	return []string{
+func parseAppendArgs(key string, values string) []string {
+	var rv []string
+	for _, val := range strings.Split(values, " ") {
+		rv = append(rv, fmt.Sprintf("--%s=%s", key, val))
+	}
+	return rv
+}
+
+func onlineArgs(cachePath string, requirements string) []string {
+	rv := []string{
 		"install",
-		"--requirement",
-		"requirements.txt",
 		"--exists-action=w",
 		fmt.Sprintf("--cache-dir=%s", cachePath),
 		"--compile",
 		"--user",
 		"--disable-pip-version-check",
 	}
+	rv = append(rv, parseAppendArgs("requirement", requirements)...)
+	return rv
 }
 
-func offlineArgs(vendorDir string) []string {
-	return []string{
+func offlineArgs(vendorDir string, requirements string) []string {
+	rv := []string{
 		"install",
-		"--requirement",
-		"requirements.txt",
 		"--ignore-installed",
 		"--exists-action=w",
 		"--no-index",
@@ -95,4 +105,6 @@ func offlineArgs(vendorDir string) []string {
 		"--user",
 		"--disable-pip-version-check",
 	}
+	rv = append(rv, parseAppendArgs("requirement", requirements)...)
+	return rv
 }

@@ -1,6 +1,8 @@
 package pipinstall
 
 import (
+	"fmt"
+	"os"
 	"path/filepath"
 
 	"github.com/paketo-buildpacks/packit/v2"
@@ -21,13 +23,16 @@ type BuildPlanMetadata struct {
 // and requires cpython and pip at build.
 func Detect() packit.DetectFunc {
 	return func(context packit.DetectContext) (packit.DetectResult, error) {
-		exists, err := fs.Exists(filepath.Join(context.WorkingDir, "requirements.txt"))
+		_, requirementEnvExists := os.LookupEnv("BP_PIP_REQUIREMENT")
+		defaultRequirement := "requirements.txt"
+
+		defaultRequirementExists, err := fs.Exists(filepath.Join(context.WorkingDir, defaultRequirement))
 		if err != nil {
 			return packit.DetectResult{}, err
 		}
 
-		if !exists {
-			return packit.DetectResult{}, packit.Fail.WithMessage("no 'requirements.txt' found")
+		if !requirementEnvExists && !defaultRequirementExists {
+			return packit.DetectResult{}, packit.Fail.WithMessage(fmt.Sprintf("BP_PIP_REQUIREMENT not set and no '%s' found", defaultRequirement))
 		}
 
 		return packit.DetectResult{

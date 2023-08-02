@@ -55,19 +55,18 @@ func testInstallProcess(t *testing.T, context spec.G, it spec.S) {
 			Expect(executable.ExecuteCall.Receives.Execution).To(MatchFields(IgnoreExtras, Fields{
 				"Args": Equal([]string{
 					"install",
-					"--requirement",
-					"requirements.txt",
 					"--exists-action=w",
 					fmt.Sprintf("--cache-dir=%s", cacheLayerPath),
 					"--compile",
 					"--user",
 					"--disable-pip-version-check",
+					"--requirement=requirements.txt",
 				}),
 				"Dir": Equal(workingDir),
 				"Env": ContainElement(fmt.Sprintf("PYTHONUSERBASE=%s", packagesLayerPath)),
 			}))
 			Expect(buffer.String()).To(ContainLines(
-				fmt.Sprintf("    Running 'pip install --requirement requirements.txt --exists-action=w --cache-dir=%s --compile --user --disable-pip-version-check'", cacheLayerPath),
+				fmt.Sprintf("    Running 'pip install --exists-action=w --cache-dir=%s --compile --user --disable-pip-version-check --requirement=requirements.txt'", cacheLayerPath),
 				"      stdout output",
 				"      stderr output",
 			))
@@ -85,8 +84,6 @@ func testInstallProcess(t *testing.T, context spec.G, it spec.S) {
 				Expect(executable.ExecuteCall.Receives.Execution).To(MatchFields(IgnoreExtras, Fields{
 					"Args": Equal([]string{
 						"install",
-						"--requirement",
-						"requirements.txt",
 						"--ignore-installed",
 						"--exists-action=w",
 						"--no-index",
@@ -94,12 +91,13 @@ func testInstallProcess(t *testing.T, context spec.G, it spec.S) {
 						"--compile",
 						"--user",
 						"--disable-pip-version-check",
+						"--requirement=requirements.txt",
 					}),
 					"Dir": Equal(workingDir),
 					"Env": ContainElement(fmt.Sprintf("PYTHONUSERBASE=%s", packagesLayerPath)),
 				}))
 				Expect(buffer.String()).To(ContainLines(
-					fmt.Sprintf("    Running 'pip install --requirement requirements.txt --ignore-installed --exists-action=w --no-index --find-links=%s --compile --user --disable-pip-version-check'", filepath.Join(workingDir, "vendor")),
+					fmt.Sprintf("    Running 'pip install --ignore-installed --exists-action=w --no-index --find-links=%s --compile --user --disable-pip-version-check --requirement=requirements.txt'", filepath.Join(workingDir, "vendor")),
 					"      stdout output",
 					"      stderr output",
 				))
@@ -135,13 +133,12 @@ func testInstallProcess(t *testing.T, context spec.G, it spec.S) {
 				Expect(executable.ExecuteCall.Receives.Execution).To(MatchFields(IgnoreExtras, Fields{
 					"Args": Equal([]string{
 						"install",
-						"--requirement",
-						"requirements.txt",
 						"--exists-action=w",
 						fmt.Sprintf("--cache-dir=%s", cacheLayerPath),
 						"--compile",
 						"--user",
 						"--disable-pip-version-check",
+						"--requirement=requirements.txt",
 					}),
 					"Dir": Equal(workingDir),
 					"Env": ContainElement(fmt.Sprintf("PYTHONUSERBASE=%s", packagesLayerPath)),
@@ -160,8 +157,6 @@ func testInstallProcess(t *testing.T, context spec.G, it spec.S) {
 					Expect(executable.ExecuteCall.Receives.Execution).To(MatchFields(IgnoreExtras, Fields{
 						"Args": Equal([]string{
 							"install",
-							"--requirement",
-							"requirements.txt",
 							"--ignore-installed",
 							"--exists-action=w",
 							"--no-index",
@@ -169,11 +164,63 @@ func testInstallProcess(t *testing.T, context spec.G, it spec.S) {
 							"--compile",
 							"--user",
 							"--disable-pip-version-check",
+							"--requirement=requirements.txt",
 						}),
 						"Dir": Equal(workingDir),
 						"Env": ContainElement(fmt.Sprintf("PYTHONUSERBASE=%s", packagesLayerPath)),
 					}))
 				})
+			})
+		})
+
+		context("when BP_PIP_REQUIREMENT overrides the default requirement path", func() {
+			it.Before(func() {
+				t.Setenv("BP_PIP_REQUIREMENT", "requirements-dev.txt")
+			})
+
+			it("runs installation", func() {
+				err := pipInstallProcess.Execute(workingDir, packagesLayerPath, cacheLayerPath)
+				Expect(err).NotTo(HaveOccurred())
+
+				Expect(executable.ExecuteCall.Receives.Execution).To(MatchFields(IgnoreExtras, Fields{
+					"Args": Equal([]string{
+						"install",
+						"--exists-action=w",
+						fmt.Sprintf("--cache-dir=%s", cacheLayerPath),
+						"--compile",
+						"--user",
+						"--disable-pip-version-check",
+						"--requirement=requirements-dev.txt",
+					}),
+					"Dir": Equal(workingDir),
+					"Env": ContainElement(fmt.Sprintf("PYTHONUSERBASE=%s", packagesLayerPath)),
+				}))
+			})
+		})
+
+		context("when BP_PIP_REQUIREMENT has multiple values", func() {
+			it.Before(func() {
+				t.Setenv("BP_PIP_REQUIREMENT", "requirements.txt requirements-lint.txt")
+			})
+
+			it("runs installation", func() {
+				err := pipInstallProcess.Execute(workingDir, packagesLayerPath, cacheLayerPath)
+				Expect(err).NotTo(HaveOccurred())
+
+				Expect(executable.ExecuteCall.Receives.Execution).To(MatchFields(IgnoreExtras, Fields{
+					"Args": Equal([]string{
+						"install",
+						"--exists-action=w",
+						fmt.Sprintf("--cache-dir=%s", cacheLayerPath),
+						"--compile",
+						"--user",
+						"--disable-pip-version-check",
+						"--requirement=requirements.txt",
+						"--requirement=requirements-lint.txt",
+					}),
+					"Dir": Equal(workingDir),
+					"Env": ContainElement(fmt.Sprintf("PYTHONUSERBASE=%s", packagesLayerPath)),
+				}))
 			})
 		})
 	})
