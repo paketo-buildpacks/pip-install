@@ -86,3 +86,7 @@ Will use `./requirements.txt` if not provided.
 ```shell
 BP_PIP_REQUIREMENT=requirements-dev.txt
 ```
+
+### `PIP_<UPPER_LONG_NAME>`
+
+It is worth noting that the `PIP_<UPPER_LONG_NAME>` configuration is respected by this buildpack and can be used to tweak the build time CLI properties for Pip as documented in [Pip's configuration](https://pip.pypa.io/en/stable/topics/configuration/#environment-variables).
