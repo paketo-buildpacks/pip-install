@@ -30,17 +30,21 @@ func Detect() packit.DetectFunc {
 			requirementsFile = envRequirement
 		}
 
-		anyRequirementsFileExists := false
+		missingRequirementFiles := []string{}
+		allRequirementsFilesExist := true
 		for _, filename := range strings.Split(requirementsFile, " ") {
 			found, err := fs.Exists(filepath.Join(context.WorkingDir, filename))
 			if err != nil {
 				return packit.DetectResult{}, err
 			}
-			anyRequirementsFileExists = anyRequirementsFileExists || found
+			if !found {
+				missingRequirementFiles = append(missingRequirementFiles, filename)
+			}
+			allRequirementsFilesExist = allRequirementsFilesExist && found
 		}
 
-		if !anyRequirementsFileExists {
-			return packit.DetectResult{}, packit.Fail.WithMessage(fmt.Sprintf("requirements file not found at: '%s'", requirementsFile))
+		if !allRequirementsFilesExist {
+			return packit.DetectResult{}, packit.Fail.WithMessage(fmt.Sprintf("requirements file not found at: '%s'", strings.Join(missingRequirementFiles, "', '")))
 		}
 
 		return packit.DetectResult{

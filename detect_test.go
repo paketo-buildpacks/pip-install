@@ -62,11 +62,12 @@ func testDetect(t *testing.T, context spec.G, it spec.S) {
 
 				err := os.WriteFile(filepath.Join(workingDir, "some_other_requirements.txt"), []byte{}, 0644)
 				Expect(err).NotTo(HaveOccurred())
+
+				err = os.WriteFile(filepath.Join(workingDir, "another_requirements.txt"), []byte{}, 0644)
+				Expect(err).NotTo(HaveOccurred())
 			})
 
-			it("detects on this value instead of the default requirements.txt if at least one file matches", func() {
-				Expect(os.Remove(filepath.Join(workingDir, "requirements.txt"))).To(Succeed())
-
+			it("detects on this value when all provided files exist", func() {
 				result, err := detect(packit.DetectContext{
 					WorkingDir: workingDir,
 				})
@@ -106,16 +107,59 @@ func testDetect(t *testing.T, context spec.G, it spec.S) {
 				Expect(err).To(MatchError(packit.Fail.WithMessage("requirements file not found at: 'requirements.txt'")))
 			})
 
-			context("and BP_PIP_REQUIREMENT points to a missing file(s)", func() {
+			context("and BP_PIP_REQUIREMENT points to files that exist", func() {
 				it.Before(func() {
-					t.Setenv("BP_PIP_REQUIREMENT", "some_missing_requirements.txt another_missing_requirements.txt")
+					err := os.WriteFile(filepath.Join(workingDir, "requirements_alt_1.txt"), []byte{}, 0644)
+					Expect(err).NotTo(HaveOccurred())
+
+					err = os.WriteFile(filepath.Join(workingDir, "requirements_alt_2.txt"), []byte{}, 0644)
+					Expect(err).NotTo(HaveOccurred())
+
+					t.Setenv("BP_PIP_REQUIREMENT", "requirements_alt_1.txt requirements_alt_2.txt")
+				})
+
+				it("detects on this value", func() {
+					result, err := detect(packit.DetectContext{
+						WorkingDir: workingDir,
+					})
+					Expect(err).NotTo(HaveOccurred())
+
+					Expect(result.Plan).To(Equal(packit.BuildPlan{
+						Provides: []packit.BuildPlanProvision{
+							{Name: pipinstall.SitePackages},
+						},
+						Requires: []packit.BuildPlanRequirement{
+							{
+								Name: pipinstall.CPython,
+								Metadata: pipinstall.BuildPlanMetadata{
+									Build: true,
+								},
+							},
+							{
+								Name: pipinstall.Pip,
+								Metadata: pipinstall.BuildPlanMetadata{
+									Build: true,
+								},
+							},
+						},
+					}))
+				})
+			})
+
+			context("and BP_PIP_REQUIREMENT points to one or more missing file(s)", func() {
+				it.Before(func() {
+					err := os.WriteFile(filepath.Join(workingDir, "requirements_alt.txt"), []byte{}, 0644)
+					Expect(err).NotTo(HaveOccurred())
+
+					t.Setenv("BP_PIP_REQUIREMENT", "some_missing_requirements.txt requirements_alt.txt another_missing_requirements.txt missing_requirements_3.txt")
 				})
 
 				it("fails detection", func() {
 					_, err := detect(packit.DetectContext{
 						WorkingDir: workingDir,
 					})
-					Expect(err).To(MatchError(packit.Fail.WithMessage("requirements file not found at: 'some_missing_requirements.txt another_missing_requirements.txt'")))
+					Expect(err).To(MatchError(packit.Fail.WithMessage(
+						"requirements file not found at: 'some_missing_requirements.txt', 'another_missing_requirements.txt', 'missing_requirements_3.txt'")))
 				})
 			})
 		})
