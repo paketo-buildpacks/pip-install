@@ -56,7 +56,45 @@ func testDetect(t *testing.T, context spec.G, it spec.S) {
 			}))
 		})
 
-		context("when there is no requirements.txt file", func() {
+		context("BP_PIP_REQUIREMENT is set", func() {
+			it.Before(func() {
+				t.Setenv("BP_PIP_REQUIREMENT", "some_other_requirements.txt another_requirements.txt")
+
+				err := os.WriteFile(filepath.Join(workingDir, "some_other_requirements.txt"), []byte{}, 0644)
+				Expect(err).NotTo(HaveOccurred())
+			})
+
+			it("detects on this value instead of the default requirements.txt if at least one file matches", func() {
+				Expect(os.Remove(filepath.Join(workingDir, "requirements.txt"))).To(Succeed())
+
+				result, err := detect(packit.DetectContext{
+					WorkingDir: workingDir,
+				})
+				Expect(err).NotTo(HaveOccurred())
+
+				Expect(result.Plan).To(Equal(packit.BuildPlan{
+					Provides: []packit.BuildPlanProvision{
+						{Name: pipinstall.SitePackages},
+					},
+					Requires: []packit.BuildPlanRequirement{
+						{
+							Name: pipinstall.CPython,
+							Metadata: pipinstall.BuildPlanMetadata{
+								Build: true,
+							},
+						},
+						{
+							Name: pipinstall.Pip,
+							Metadata: pipinstall.BuildPlanMetadata{
+								Build: true,
+							},
+						},
+					},
+				}))
+			})
+		})
+
+		context("when there is no requirements.txt", func() {
 			it.Before(func() {
 				Expect(os.Remove(filepath.Join(workingDir, "requirements.txt"))).To(Succeed())
 			})
@@ -65,7 +103,20 @@ func testDetect(t *testing.T, context spec.G, it spec.S) {
 				_, err := detect(packit.DetectContext{
 					WorkingDir: workingDir,
 				})
-				Expect(err).To(MatchError(packit.Fail.WithMessage("BP_PIP_REQUIREMENT not set and no 'requirements.txt' found")))
+				Expect(err).To(MatchError(packit.Fail.WithMessage("requirements file not found at: 'requirements.txt'")))
+			})
+
+			context("and BP_PIP_REQUIREMENT points to a missing file(s)", func() {
+				it.Before(func() {
+					t.Setenv("BP_PIP_REQUIREMENT", "some_missing_requirements.txt another_missing_requirements.txt")
+				})
+
+				it("fails detection", func() {
+					_, err := detect(packit.DetectContext{
+						WorkingDir: workingDir,
+					})
+					Expect(err).To(MatchError(packit.Fail.WithMessage("requirements file not found at: 'some_missing_requirements.txt another_missing_requirements.txt'")))
+				})
 			})
 		})
 
