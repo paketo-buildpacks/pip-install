@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/paketo-buildpacks/packit/v2"
 	"github.com/paketo-buildpacks/packit/v2/fs"
@@ -23,16 +24,27 @@ type BuildPlanMetadata struct {
 // and requires cpython and pip at build.
 func Detect() packit.DetectFunc {
 	return func(context packit.DetectContext) (packit.DetectResult, error) {
-		_, requirementEnvExists := os.LookupEnv("BP_PIP_REQUIREMENT")
-		defaultRequirement := "requirements.txt"
-
-		defaultRequirementExists, err := fs.Exists(filepath.Join(context.WorkingDir, defaultRequirement))
-		if err != nil {
-			return packit.DetectResult{}, err
+		requirementsFile := "requirements.txt"
+		envRequirement, requirementEnvExists := os.LookupEnv("BP_PIP_REQUIREMENT")
+		if requirementEnvExists {
+			requirementsFile = envRequirement
 		}
 
-		if !requirementEnvExists && !defaultRequirementExists {
-			return packit.DetectResult{}, packit.Fail.WithMessage(fmt.Sprintf("BP_PIP_REQUIREMENT not set and no '%s' found", defaultRequirement))
+		missingRequirementFiles := []string{}
+		allRequirementsFilesExist := true
+		for _, filename := range strings.Split(requirementsFile, " ") {
+			found, err := fs.Exists(filepath.Join(context.WorkingDir, filename))
+			if err != nil {
+				return packit.DetectResult{}, err
+			}
+			if !found {
+				missingRequirementFiles = append(missingRequirementFiles, filename)
+			}
+			allRequirementsFilesExist = allRequirementsFilesExist && found
+		}
+
+		if !allRequirementsFilesExist {
+			return packit.DetectResult{}, packit.Fail.WithMessage(fmt.Sprintf("requirements file not found at: '%s'", strings.Join(missingRequirementFiles, "', '")))
 		}
 
 		return packit.DetectResult{
