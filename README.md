@@ -87,6 +87,18 @@ Will use `./requirements.txt` if not provided.
 BP_PIP_REQUIREMENT=requirements-dev.txt
 ```
 
+### `BP_PIP_FIND_LINKS`
+
+The `BP_PIP_FIND_LINKS` variable allows you to specify one or more directories
+to pass to `--find-links`. This should be a local path or `file://` URL.
+
+```shell
+BP_PIP_FIND_LINKS=./vendor-dir
+```
+
 ### `PIP_<UPPER_LONG_NAME>`
 
-It is worth noting that the `PIP_<UPPER_LONG_NAME>` configuration is respected by this buildpack and can be used to tweak the build time CLI properties for Pip as documented in [Pip's configuration](https://pip.pypa.io/en/stable/topics/configuration/#environment-variables).
+It is worth noting that the `PIP_<UPPER_LONG_NAME>` configuration is respected
+by this buildpack and can be used to tweak the build time CLI properties for
+Pip as documented in [Pip's
+configuration](https://pip.pypa.io/en/stable/topics/configuration/#environment-variables).
