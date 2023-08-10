@@ -48,11 +48,17 @@ func (p PipInstallProcess) Execute(workingDir, targetPath, cachePath string) err
 		vendorDir = filepath.Join(workingDir, destPath)
 	}
 
+	userFindLinks, _ := os.LookupEnv("BP_PIP_FIND_LINKS")
+	findLinks, _ := os.LookupEnv("PIP_FIND_LINKS")
+
+	combinedFindLinks := []string{userFindLinks, findLinks}
+
 	var args []string
 	if exists, err := fs.Exists(vendorDir); err != nil {
 		return err
 	} else if exists {
-		args = offlineArgs(vendorDir, requirements)
+		combinedFindLinks = append(combinedFindLinks, vendorDir)
+		args = offlineArgs(requirements)
 	} else {
 		args = onlineArgs(cachePath, requirements)
 	}
@@ -60,8 +66,11 @@ func (p PipInstallProcess) Execute(workingDir, targetPath, cachePath string) err
 	p.logger.Subprocess("Running 'pip %s'", strings.Join(args, " "))
 
 	err := p.executable.Execute(pexec.Execution{
-		Args:   args,
-		Env:    append(os.Environ(), fmt.Sprintf("PYTHONUSERBASE=%s", targetPath)),
+		Args: args,
+		Env: append(os.Environ(),
+			fmt.Sprintf("PYTHONUSERBASE=%s", targetPath),
+			fmt.Sprintf("PIP_FIND_LINKS=%s", strings.TrimLeft(strings.Join(combinedFindLinks, " "), " ")),
+		),
 		Dir:    workingDir,
 		Stdout: p.logger.ActionWriter,
 		Stderr: p.logger.ActionWriter,
@@ -94,13 +103,12 @@ func onlineArgs(cachePath string, requirements string) []string {
 	return rv
 }
 
-func offlineArgs(vendorDir string, requirements string) []string {
+func offlineArgs(requirements string) []string {
 	rv := []string{
 		"install",
 		"--ignore-installed",
 		"--exists-action=w",
 		"--no-index",
-		fmt.Sprintf("--find-links=%s", vendorDir),
 		"--compile",
 		"--user",
 		"--disable-pip-version-check",
