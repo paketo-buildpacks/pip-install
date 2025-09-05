@@ -1,7 +1,6 @@
 package pipinstall
 
 import (
-	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -44,7 +43,7 @@ func Detect() packit.DetectFunc {
 		}
 
 		if !allRequirementsFilesExist {
-			return packit.DetectResult{}, packit.Fail.WithMessage(fmt.Sprintf("requirements file not found at: '%s'", strings.Join(missingRequirementFiles, "', '")))
+			return packit.DetectResult{}, packit.Fail.WithMessage("requirements file not found at: '%s'", strings.Join(missingRequirementFiles, "', '"))
 		}
 
 		return packit.DetectResult{
